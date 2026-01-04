@@ -1,3 +1,4 @@
+import * as TestUI from "./test-ui";
 import * as ManualRestart from "./manual-restart-tracker";
 import Config, { setConfig, setQuoteLengthAll, toggleFunbox } from "../config";
 import * as Strings from "../utils/strings";
@@ -37,6 +38,7 @@ import * as AnalyticsController from "../controllers/analytics-controller";
 import { getAuthenticatedUser, isAuthenticated } from "../firebase";
 import * as ConnectionState from "../states/connection";
 import * as LazyModeState from "../states/remember-lazy-mode";
+import Format from "../utils/format";
 import { QuoteLength, QuoteLengthConfig } from "@monkeytype/schemas/configs";
 import { Mode } from "@monkeytype/schemas/shared";
 import {
@@ -269,6 +271,9 @@ export function restart(options = {} as RestartOptions): void {
 
   if (!ConnectionState.get()) {
     ConnectionState.showOfflineBanner();
+  }
+
+  // TestUI.beforeTestRestart();
 
   let source: "testPage" | "resultPage";
   let el: HTMLElement;
@@ -1188,37 +1193,120 @@ export async function finish(difficultyFailed = false): Promise<void> {
 
 async function saveResult(
   completedEvent: CompletedEvent,
-  _isRetrying: boolean,
-): Promise<
-  | null
-  | { status: number; body: { message: string; data: { isPb?: boolean } } }
-> {
+  isRetrying: boolean,
+): Promise<null | Awaited<ReturnType<typeof Ape.results.add>>> {
+  AccountButton.loading(true);
+
   if (!TestState.savingEnabled) {
     Notifications.add("Result not saved: disabled by user", -1, {
       duration: 3,
       customTitle: "Notice",
       important: true,
     });
+    AccountButton.loading(false);
     return null;
   }
 
-  StorageManager.addResult(completedEvent);
+  if (!ConnectionState.get()) {
+    Notifications.add("Result not saved: offline", -1, {
+      duration: 2,
+      customTitle: "Notice",
+      important: true,
+    });
+    AccountButton.loading(false);
+    retrySaving.canRetry = true;
+    $("#retrySavingResultButton").removeClass("hidden");
+    if (!isRetrying) {
+      retrySaving.completedEvent = completedEvent;
+    }
+    return null;
+  }
 
-  const isPb = StorageManager.updatePersonalBest(
-    `${completedEvent.mode}_${completedEvent.mode2}_${completedEvent.punctuation}_${completedEvent.numbers}_${completedEvent.language}_${completedEvent.difficulty}_${completedEvent.lazyMode}`,
-    completedEvent.wpm,
+  const response = await Ape.results.add({ body: { result: completedEvent } });
+
+  AccountButton.loading(false);
+
+  if (response.status !== 200) {
+    //only allow retry if status is not in this list
+    if (![460, 461, 463, 464, 465, 466].includes(response.status)) {
+      retrySaving.canRetry = true;
+      $("#retrySavingResultButton").removeClass("hidden");
+      if (!isRetrying) {
+        retrySaving.completedEvent = completedEvent;
+      }
+    }
+    console.log("Error saving result", completedEvent);
+    if (response.body.message === "Old key data format") {
+      response.body.message =
+        "Old key data format. Please refresh the page to download the new update. If the problem persists, please contact support.";
+    }
+    if (
+      /"result\..+" is (not allowed|required)/gi.test(response.body.message)
+    ) {
+      response.body.message =
+        "Looks like your result data is using an incorrect schema. Please refresh the page to download the new update. If the problem persists, please contact support.";
+    }
+    Notifications.add("Failed to save result", -1, { response });
+    return response;
+  }
+
+  const data = response.body.data;
+  $("#result .stats .tags .editTagsButton").attr(
+    "data-result-id",
+    data.insertedId,
   );
+  $("#result .stats .tags .editTagsButton").removeClass("invisible");
 
-  StorageManager.updateAverage(
-    `${completedEvent.mode}_${completedEvent.mode2}_${completedEvent.punctuation}_${completedEvent.numbers}_${completedEvent.language}_${completedEvent.difficulty}_${completedEvent.lazyMode}`,
-    completedEvent.wpm,
-    completedEvent.acc,
-    1,
-  );
+  const dataToSave: DB.SaveLocalResultData = {};
 
-  if (isPb) {
-    Result.showConfetti();
+  if (data.xp !== undefined) {
+    const snapxp = DB.getSnapshot()?.xp ?? 0;
+
+    void XPBar.update(
+      snapxp,
+      data.xp,
+      TestState.resultVisible ? data.xpBreakdown : undefined,
+    );
+    dataToSave.xp = data.xp;
+  }
+
+  if (data.streak !== undefined) {
+    dataToSave.streak = data.streak;
+  }
+
+  if (data.insertedId !== undefined) {
+    //TODO - this type cast was not needed before because we were using JSON cloning
+    // but now with the stronger types it shows that we are forcing completed event
+    // into a snapshot result - might not cuase issues but worth investigating
+    const result = structuredClone(
+      completedEvent,
+    ) as unknown as SnapshotResult<Mode>;
+    result._id = data.insertedId;
+    if (data.isPb !== undefined && data.isPb) {
+      result.isPb = true;
+    }
+    dataToSave.result = result;
+  }
+
+  if (data.isPb !== undefined && data.isPb) {
+    //new pb
+    const localPb = await DB.getLocalPB(
+      completedEvent.mode,
+      completedEvent.mode2,
+      completedEvent.punctuation,
+      completedEvent.numbers,
+      completedEvent.language,
+      completedEvent.difficulty,
+      completedEvent.lazyMode,
+      getFunbox(completedEvent.funbox),
+    );
+
+    if (localPb !== undefined) {
+      Result.showConfetti();
+    }
     Result.showCrown("normal");
+
+    dataToSave.isPb = true;
   } else {
     Result.showErrorCrownIfNeeded();
   }
@@ -1226,15 +1314,29 @@ async function saveResult(
   const dailyLeaderboardEl = document.querySelector(
     "#result .stats .dailyLeaderboard",
   ) as HTMLElement;
-  dailyLeaderboardEl.classList.add("hidden");
 
-  return {
-    status: 200,
-    body: {
-      message: "Result saved locally",
-      data: { isPb },
-    },
-  };
+  if (data.dailyLeaderboardRank === undefined) {
+    dailyLeaderboardEl.classList.add("hidden");
+  } else {
+    dailyLeaderboardEl.classList.remove("hidden");
+    dailyLeaderboardEl.style.maxWidth = "13rem";
+
+    animate(dailyLeaderboardEl, {
+      opacity: [0, 1],
+      duration: Misc.applyReducedMotion(250),
+    });
+
+    $("#result .stats .dailyLeaderboard .bottom").html(
+      Format.rank(data.dailyLeaderboardRank, { fallback: "" }),
+    );
+  }
+
+  $("#retrySavingResultButton").addClass("hidden");
+  if (isRetrying) {
+    Notifications.add("Result saved", 1, { important: true });
+  }
+  DB.saveLocalResult(dataToSave);
+  return response;
 }
 
 export function fail(reason: string): void {

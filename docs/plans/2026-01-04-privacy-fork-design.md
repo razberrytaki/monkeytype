@@ -2,12 +2,12 @@
 
 ## Status
 
-| Phase                           | Status         | Progress           |
-| ------------------------------- | -------------- | ------------------ |
-| Phase 1: Core Infrastructure    | 🟢 Complete    | 4/4 tasks complete |
-| Phase 2: Test Logic Integration | ⬜ Not Started | 0/3 tasks complete |
-| Phase 3: UI Cleanup             | ⬜ Not Started | 0/3 tasks complete |
-| Phase 4: Polish & Testing       | ⬜ Not Started | 0/3 tasks complete |
+| Phase                           | Status         | Progress             |
+| ------------------------------- | -------------- | -------------------- |
+| Phase 1: Core Infrastructure    | 🟢 Complete    | 4/4 tasks complete   |
+| Phase 2: Test Logic Integration | 🟡 In Progress | 2.5/3 tasks complete |
+| Phase 3: UI Cleanup             | ⬜ Not Started | 0/3 tasks complete   |
+| Phase 4: Polish & Testing       | ⬜ Not Started | 0/3 tasks complete   |
 
 **Last Updated**: 2026-01-04
 
@@ -997,20 +997,20 @@ describe("Privacy Fork E2E", () => {
 
 ### Phase 2: Test Logic Integration
 
-- [ ] Modify `test-logic.ts`
-  - [ ] Replace `Ape.results.add()` with `storageManager.addResult()`
-  - [ ] Remove `AccountButton.loading()`
-  - [ ] Remove `ConnectionState.get()`
-  - [ ] Update PB checking with localStorage
-  - [ ] Update average calculation
-  - [ ] Remove retry saving logic
-- [ ] Update `test/result.ts`
-  - [ ] Remove XP bar display
-  - [ ] Remove streak display
-  - [ ] Remove daily leaderboard
-  - [ ] Update quote favorites handling
-- [ ] Update `utils/results.ts`
-  - [ ] Remove `Ape.results.add()`
+- [x] Modify `test-logic.ts`
+  - [x] Replace `Ape.results.add()` with `StorageManager.addResult()`
+  - [x] Remove `AccountButton.loading()`
+  - [x] Remove `ConnectionState.get()`
+  - [x] Update PB checking with localStorage
+  - [x] Update average calculation
+  - [x] Remove retry saving logic
+- [x] Update `test/result.ts`
+  - [x] Remove XP bar display
+  - [x] Remove streak display
+  - [x] Remove daily leaderboard
+  - [x] Update quote favorites handling
+- [x] Update `utils/results.ts`
+  - [x] Remove `Ape.results.add()`
   - [ ] Update export functionality
 
 ### Phase 3: UI Cleanup
