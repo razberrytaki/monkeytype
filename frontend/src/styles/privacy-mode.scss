@@ -1,0 +1,25 @@
+/* Hide authentication-related elements */
+.pageLogin,
+.pageSignup,
+#top #menu .account .profile-menu,
+.leaderboard-link,
+.challenge-link,
+.discord-link {
+  @extend %hidden;
+}
+
+/* Hide guest-only features in privacy mode */
+.xp-bar,
+.streak-display,
+.daily-leaderboard {
+  @extend %hidden;
+}
+
+/* Hide account/leaderboard pages */
+.pageProfile,
+.pageAccount,
+.pageLeaderboards,
+.pageFriends,
+.pageChallenge {
+  @extend %hidden;
+}
