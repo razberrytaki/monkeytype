@@ -1,5 +1,4 @@
 import { navigate } from "../../controllers/route-controller";
-import { isAuthenticated } from "../../firebase";
 import { toggleFullscreen } from "../../utils/misc";
 import { Command } from "../types";
 
@@ -11,15 +10,6 @@ const commands: Command[] = [
     icon: "fa-keyboard",
     exec: (): void => {
       void navigate("/");
-    },
-  },
-  {
-    id: "viewLeaderboards",
-    display: "View Leaderboards",
-    alias: "navigate go to",
-    icon: "fa-crown",
-    exec: (): void => {
-      void navigate("/leaderboards");
     },
   },
   {
@@ -38,16 +28,6 @@ const commands: Command[] = [
     icon: "fa-cog",
     exec: (): void => {
       void navigate("/settings");
-    },
-  },
-
-  {
-    id: "viewAccount",
-    display: "View Account Page",
-    alias: "navigate go to stats",
-    icon: "fa-user",
-    exec: (): void => {
-      isAuthenticated() ? void navigate("/account") : void navigate("/login");
     },
   },
   {
