@@ -1525,3 +1525,8 @@ ConfigEvent.subscribe(({ key }) => {
     fillUser();
   }
 });
+
+export async function update(): Promise<void> {
+  qs(".pageLeaderboards")?.addClass("hidden");
+  return;
+}
