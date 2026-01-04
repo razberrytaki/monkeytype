@@ -11,7 +11,7 @@ export const projects: UserWorkspaceConfig[] = [
   {
     test: {
       name: { label: "unit", color: "blue" },
-      include: ["__tests__/**/*.spec.ts"],
+      include: ["__tests__/**/*.spec.ts", "__tests__/**/*.test.ts"],
       exclude: ["__tests__/**/*.jsdom-spec.ts"],
       environment: "happy-dom",
       globalSetup: "__tests__/global-setup.ts",
