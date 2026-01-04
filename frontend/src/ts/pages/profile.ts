@@ -1,20 +1,11 @@
-import Ape from "../ape";
 import Page from "./page";
-import * as Profile from "../elements/profile";
-import * as PbTables from "../elements/account/pb-tables";
 import * as Notifications from "../elements/notifications";
-import { checkIfGetParameterExists } from "../utils/misc";
 import * as UserReportModal from "../modals/user-report";
 import * as Skeleton from "../utils/skeleton";
 import { UserProfile } from "@monkeytype/schemas/users";
-import { PersonalBests } from "@monkeytype/schemas/shared";
 import * as TestActivity from "../elements/test-activity";
-import { TestActivityCalendar } from "../elements/test-activity-calendar";
-import { getFirstDayOfTheWeek } from "../utils/date-and-time";
 import { addFriend } from "./friends";
 import { qs, qsr } from "../utils/dom";
-
-const firstDayOfTheWeek = getFirstDayOfTheWeek();
 
 function reset(): void {
   qs(".page.pageProfile .error")?.hide();
@@ -179,62 +170,12 @@ type UpdateOptions = {
   data?: undefined | UserProfile;
 };
 
-async function update(options: UpdateOptions): Promise<void> {
-  const getParamExists = checkIfGetParameterExists("isUid");
-  if (options.data) {
-    qs(".page.pageProfile .preloader")?.hide();
-    await Profile.update("profile", options.data);
-    PbTables.update(
-      // this cast is fine because pb tables can handle the partial data inside user profiles
-      options.data.personalBests as unknown as PersonalBests,
-      true,
-    );
-  } else if (options.uidOrName !== undefined && options.uidOrName !== "") {
-    const response = await Ape.users.getProfile({
-      params: { uidOrName: options.uidOrName },
-      query: { isUid: getParamExists },
-    });
+async function update(_options: UpdateOptions): Promise<void> {
+  // Privacy mode: hide profile page
+  qs(".pageProfile")?.addClass("hidden");
 
-    qs(".page.pageProfile .preloader")?.hide();
-
-    if (response.status === 404) {
-      const message = getParamExists
-        ? "User not found"
-        : `User ${options.uidOrName} not found`;
-      qs(".page.pageProfile .preloader")?.hide();
-      qs(".page.pageProfile .error")?.show();
-      qs(".page.pageProfile .error .message")?.setText(message);
-    } else if (response.status === 200) {
-      const profile = response.body.data;
-      window.history.replaceState(null, "", `/profile/${profile.name}`);
-      await Profile.update("profile", profile);
-      // this cast is fine because pb tables can handle the partial data inside user profiles
-      PbTables.update(profile.personalBests as unknown as PersonalBests, true);
-
-      const testActivity = document.querySelector(
-        ".page.pageProfile .testActivity",
-      ) as HTMLElement;
-
-      if (profile.testActivity !== undefined) {
-        const calendar = new TestActivityCalendar(
-          profile.testActivity.testsByDays,
-          new Date(profile.testActivity.lastDay),
-          firstDayOfTheWeek,
-        );
-        TestActivity.init(testActivity, calendar);
-        const title = testActivity.querySelector(".top .title") as HTMLElement;
-        title.innerHTML = title?.innerHTML + " in last 12 months";
-      } else {
-        TestActivity.clear(testActivity);
-      }
-    } else {
-      // qs(".page.pageProfile .failedToLoad")?.show();
-      Notifications.add("Failed to load profile: " + response.body.message, -1);
-      return;
-    }
-  } else {
-    Notifications.add("Missing update parameter!", -1);
-  }
+  // Original profile logic (now skipped)
+  return;
 }
 
 qs(".page.pageProfile")?.onChild("click", ".profile .userReportButton", () => {
@@ -281,8 +222,10 @@ export const page = new Page<undefined | UserProfile>({
       qs(".page.pageProfile .search")?.hide();
       qs(".page.pageProfile .content")?.show();
       reset();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       void update({
         uidOrName,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: options?.data,
       });
     } else {
