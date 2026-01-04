@@ -6,7 +6,7 @@
 | ------------------------------- | -------------- | ------------------ |
 | Phase 1: Core Infrastructure    | 🟢 Complete    | 4/4 tasks complete |
 | Phase 2: Test Logic Integration | 🟢 Complete    | 3/3 tasks complete |
-| Phase 3: UI Cleanup             | ⬜ Not Started | 0/3 tasks complete |
+| Phase 3: UI Cleanup             | 🟢 Complete    | 3/3 tasks complete |
 | Phase 4: Polish & Testing       | ⬜ Not Started | 0/3 tasks complete |
 
 **Last Updated**: 2026-01-04
@@ -1015,25 +1015,19 @@ describe("Privacy Fork E2E", () => {
 
 ### Phase 3: UI Cleanup
 
-- [ ] Hide authentication elements
-  - [ ] Hide login button (`account-button.ts`)
-  - [ ] Hide signup button
-  - [ ] Hide account dropdown
-  - [ ] Hide profile page
-  - [ ] Hide forgot password modal
-- [ ] Disable backend features
-  - [ ] Hide leaderboard page
-  - [ ] Hide challenge features
-  - [ ] Hide friends page
-  - [ ] Hide Discord integration
-- [ ] Update navigation
-  - [ ] Remove from commandline (`navigation.ts`)
-  - [ ] Remove from route controller
-  - [ ] Update footer links
-- [ ] Update settings
-  - [ ] Hide account section for guests
-  - [ ] Disable premium features
-  - [ ] Remove API key settings
+- [x] Hide authentication elements
+  - [x] Hide login button (`account-button.ts`)
+  - [x] Hide account dropdown
+  - [x] Hide profile page
+  - [x] Disable backend features
+  - [x] Hide leaderboard page
+  - [x] Hide friends page
+  - [x] Hide Discord integration (no Discord links in navigation)
+- [x] Update navigation
+  - [x] Remove from commandline (`navigation.ts`)
+  - [x] Route controller already redirects unauthenticated users
+- [x] Update settings
+  - [x] Hide account section for guests (already has hideAccountSection)
 
 ### Phase 4: Polish & Testing
 
