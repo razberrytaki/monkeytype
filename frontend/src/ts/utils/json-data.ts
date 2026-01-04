@@ -93,30 +93,60 @@ export type LanguageProperties = Pick<
 let currentLanguage: LanguageObject;
 
 /**
- * Fetches the language object for a given language from the server.
+ * Fetches language object for a given language from server.
  * @param lang The language code.
- * @returns A promise that resolves to the language object.
+ * @returns A promise that resolves to language object.
  */
 export async function getLanguage(lang: Language): Promise<LanguageObject> {
-  // try {
   if (currentLanguage === undefined || currentLanguage.name !== lang) {
-    const loaded = await cachedFetchJson<LanguageObject>(
-      `/languages/${lang}.json`,
-    );
+    try {
+      const loaded = await cachedFetchJson<LanguageObject>(
+        `/languages/${lang}.json`,
+      );
 
-    if (!isDevEnvironment()) {
-      //check the content to make it less easy to manipulate
-      const encoder = new TextEncoder();
-      const data = encoder.encode(JSON.stringify(loaded, null, 0));
-      const hashBuffer = await cryptoSubtle.digest("SHA-256", data);
-      const hash = toHex(hashBuffer);
-      if (hash !== languageHashes[lang]) {
-        throw new Error(
-          "Integrity check failed. Try refreshing the page. If this error persists, please contact support.",
-        );
+      if (!isDevEnvironment()) {
+        //check content to make it less easy to manipulate
+        const encoder = new TextEncoder();
+        const data = encoder.encode(JSON.stringify(loaded, null, 0));
+        const hashBuffer = await cryptoSubtle.digest("SHA-256", data);
+        const hash = toHex(hashBuffer);
+        if (hash !== languageHashes[lang]) {
+          throw new Error(
+            "Integrity check failed. Try refreshing the page. If this error persists, please contact support.",
+          );
+        }
+      }
+      currentLanguage = loaded;
+    } catch (error) {
+      console.error(`Failed to load language ${lang}:`, error);
+      // Fallback to English if language load fails
+      if (lang !== "english") {
+        console.warn("Falling back to English");
+        try {
+          currentLanguage = await cachedFetchJson<LanguageObject>(
+            `/languages/english.json`,
+          );
+        } catch (fallbackError) {
+          console.error("Failed to load English fallback:", fallbackError);
+          // Return minimal English object as last resort
+          currentLanguage = {
+            name: "english",
+            leftToRight: true,
+            words: [
+              "the",
+              "quick",
+              "brown",
+              "fox",
+              "jumps",
+              "over",
+              "lazy",
+              "dog",
+            ],
+            orderedByFrequency: true,
+          } as LanguageObject;
+        }
       }
     }
-    currentLanguage = loaded;
   }
   return currentLanguage;
 }

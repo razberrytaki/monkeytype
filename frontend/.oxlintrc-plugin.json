@@ -1,8 +1,16 @@
 {
-  "ignorePatterns": ["node_modules", "dist", "coverage", ".firebase", ".turbo"],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "coverage",
+    ".firebase",
+    ".turbo",
+    "src/ts/test/test-logic.ts"
+  ],
   "extends": ["../packages/oxlint-config/plugin.jsonc"],
   "jsPlugins": ["eslint-plugin-compat"],
   "rules": {
-    "compat/compat": "error"
+    "compat/compat": "error",
+    "unicorn/no-empty-file": "off"
   }
 }

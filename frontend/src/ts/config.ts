@@ -97,7 +97,7 @@ export function setConfig<T extends keyof Config>(
 ): boolean {
   const metadata = configMetadata[key] as ConfigMetadataObject[T];
   if (metadata === undefined) {
-    throw new Error(`Config metadata for key "${key}" is not defined.`);
+    throw new Error(`Config metadata for key "${String(key)}" is not defined.`);
   }
 
   if (metadata.overrideValue) {
@@ -119,7 +119,7 @@ export function setConfig<T extends keyof Config>(
       important: true,
     });
     console.warn(
-      `Could not set config key "${key}" with value "${JSON.stringify(
+      `Could not set config key "${String(key)}" with value "${JSON.stringify(
         value,
       )}" - no quit funbox active.`,
     );
@@ -128,7 +128,7 @@ export function setConfig<T extends keyof Config>(
 
   if (metadata.isBlocked?.({ value, currentConfig: config })) {
     console.warn(
-      `Could not set config key "${key}" with value "${JSON.stringify(
+      `Could not set config key "${String(key)}" with value "${JSON.stringify(
         value,
       )}" - blocked.`,
     );
@@ -137,9 +137,11 @@ export function setConfig<T extends keyof Config>(
 
   const schema = ConfigSchemas.ConfigSchema.shape[key] as ZodSchema;
 
-  if (!isConfigValueValid(metadata.displayString ?? key, value, schema)) {
+  if (
+    !isConfigValueValid(metadata.displayString ?? String(key), value, schema)
+  ) {
     console.warn(
-      `Could not set config key "${key}" with value "${JSON.stringify(
+      `Could not set config key "${String(key)}" with value "${JSON.stringify(
         value,
       )}" - invalid value.`,
     );
@@ -173,7 +175,7 @@ export function setConfig<T extends keyof Config>(
       const set = setConfig(targetKey, targetValue, options);
       if (!set) {
         throw new Error(
-          `Failed to set config key "${targetKey}" with value "${targetValue}" for ${metadata.displayString} config override.`,
+          `Failed to set config key "${String(targetKey)}" with value "${targetValue}" for ${metadata.displayString} config override.`,
         );
       }
     }

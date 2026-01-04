@@ -6,7 +6,7 @@ import {
   XpLeaderboardEntry,
 } from "@monkeytype/schemas/leaderboards";
 import { capitalizeFirstLetter } from "../utils/strings";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as Notifications from "../elements/notifications";
 import Format from "../utils/format";
 import { getAuthenticatedUser, isAuthenticated } from "../firebase";

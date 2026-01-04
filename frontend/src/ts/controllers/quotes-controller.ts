@@ -3,7 +3,7 @@ import { randomElementFromArray, shuffle } from "../utils/arrays";
 import { cachedFetchJson } from "../utils/json-data";
 import { subscribe } from "../observables/config-event";
 import * as DB from "../db";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { tryCatch } from "@monkeytype/util/trycatch";
 import { Language } from "@monkeytype/schemas/languages";
 import { QuoteData, QuoteDataQuote } from "@monkeytype/schemas/quotes";

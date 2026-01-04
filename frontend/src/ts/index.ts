@@ -6,6 +6,8 @@ import "./event-handlers/about";
 import "./event-handlers/settings";
 
 import * as Logger from "./utils/logger";
+import * as Notifications from "./elements/notifications";
+import { setNotificationHandler } from "@monkeytype/local-storage-manager";
 import "./ui";
 import "./controllers/ad-controller";
 import Config, { loadFromLocalStorage } from "./config";
@@ -54,6 +56,8 @@ Object.defineProperty(window, "Math", {
   configurable: false,
   enumerable: true,
 });
+
+setNotificationHandler(Notifications.add);
 
 applyEngineSettings();
 void loadFromLocalStorage();

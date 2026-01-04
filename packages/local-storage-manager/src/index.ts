@@ -8,10 +8,28 @@ import type {
 import { StorageKey, StorageDataSchema, createStorageError } from "./types.js";
 
 const MAX_HISTORY_SIZE = 500;
+let showNotification: (
+  message: string,
+  level: number,
+  options?: { important?: boolean; customTitle?: string; duration?: number },
+) => void = (_message, _level, _options) => {
+  // No-op by default until setNotificationHandler is called
+};
+
+export function setNotificationHandler(
+  handler: (
+    message: string,
+    level: number,
+    options?: { important?: boolean; customTitle?: string; duration?: number },
+  ) => void,
+): void {
+  showNotification = handler;
+}
 
 class LocalStorageManager {
   private isAvailable: boolean = false;
   private memoryFallback: Map<string, string> = new Map();
+  private hasShownStorageWarning: boolean = false;
 
   constructor() {
     this.checkAvailability();
@@ -26,6 +44,15 @@ class LocalStorageManager {
     } catch (error) {
       console.warn("localStorage not available:", error);
       this.isAvailable = false;
+
+      if (!this.hasShownStorageWarning) {
+        showNotification(
+          "Storage unavailable - data will be lost on page refresh",
+          0,
+          { important: true, customTitle: "Warning", duration: 0 },
+        );
+        this.hasShownStorageWarning = true;
+      }
     }
   }
 
@@ -121,12 +148,31 @@ class LocalStorageManager {
 
   private handleQuotaExceeded(): void {
     console.warn("Storage quota exceeded, cleaning up old data");
+
     const history = this.getHistory();
+
+    if (history.length === 0) {
+      console.warn("History is empty, cannot clean up");
+      return;
+    }
+
     if (history.length > MAX_HISTORY_SIZE) {
       const trimmedHistory = history.slice(-MAX_HISTORY_SIZE);
       this.setHistory(trimmedHistory);
       console.log(`Trimmed history to ${MAX_HISTORY_SIZE} results`);
+      return;
     }
+
+    const removeCount = Math.floor(history.length * 0.5);
+    const trimmedHistory = history.slice(removeCount);
+    this.setHistory(trimmedHistory);
+    console.log(`Emergency cleanup: removed ${removeCount} oldest results`);
+
+    showNotification(
+      `Storage quota exceeded. Removed ${removeCount} old results to free space.`,
+      0,
+      { important: true, customTitle: "Storage Warning", duration: 5 },
+    );
   }
 
   public getVersion(): number {

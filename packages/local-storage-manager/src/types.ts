@@ -66,10 +66,10 @@ export function createStorageError(
   code: StorageError["code"],
   message: string,
 ): StorageError {
-  const error = new Error(message) as StorageError;
-  (error as StorageError).code = code;
+  const error = new Error(message) as Error & Partial<StorageError>;
+  error.code = code;
   error.name = "StorageError";
-  return error;
+  return error as StorageError;
 }
 
 export function isStorageError(error: unknown): error is StorageError {

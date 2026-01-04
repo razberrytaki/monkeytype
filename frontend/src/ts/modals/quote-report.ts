@@ -1,5 +1,5 @@
 import { ElementWithUtils, qsr } from "../utils/dom";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import Config from "../config";
 import * as Loader from "../elements/loader";
 import * as Notifications from "../elements/notifications";

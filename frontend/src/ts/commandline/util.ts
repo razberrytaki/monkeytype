@@ -48,7 +48,9 @@ function _buildCommandForConfigKey<
   schema: ZodSchema,
 ): Command {
   if (commandMeta === undefined || commandMeta === null) {
-    throw new Error(`No commandline metadata found for config key "${key}".`);
+    throw new Error(
+      `No commandline metadata found for config key "${String(key)}".`,
+    );
   }
 
   let result: Command | undefined = undefined;
@@ -89,7 +91,7 @@ function _buildCommandForConfigKey<
 
   if (result === undefined) {
     throw new Error(
-      `Nothing returned for config key "${key}". This is a bug in the commandline metadata.`,
+      `Nothing returned for config key "${String(key)}". This is a bug in commandline metadata.`,
     );
   }
   return result;
@@ -104,12 +106,14 @@ function buildCommandWithSubgroup<K extends keyof ConfigSchemas.Config>(
   schema: ZodSchema,
 ): Command {
   if (subgroupProps === null) {
-    throw new Error(`No commandline metadata found for config key "${key}".`);
+    throw new Error(
+      `No commandline metadata found for config key "${String(key)}".`,
+    );
   }
 
   const display =
     rootDisplay ??
-    `${capitalizeFirstLetter(configMeta?.displayString ?? key)}...`;
+    `${capitalizeFirstLetter(configMeta?.displayString ?? String(key))}...`;
 
   let values =
     subgroupProps.options ?? (getOptions(schema) as ConfigSchemas.Config[K][]);
@@ -135,7 +139,7 @@ function buildCommandWithSubgroup<K extends keyof ConfigSchemas.Config>(
   });
 
   return {
-    id: `change${capitalizeFirstLetter(key)}`,
+    id: `change${capitalizeFirstLetter(String(key))}`,
     display: display,
     icon: configMeta?.icon ?? "fa-cog",
     subgroup: {
@@ -176,10 +180,10 @@ function buildSubgroupCommand<K extends keyof ConfigSchemas.Config>(
   }
 
   return {
-    id: `set${capitalizeFirstLetter(key)}${capitalizeFirstLetter(
+    id: `set${capitalizeFirstLetter(String(key))}${capitalizeFirstLetter(
       val.toString(),
     )}`,
-    display: displayString,
+    display: displayString ?? "",
     configValueMode: commandConfigValueMode?.(value),
     alias: commandAlias?.(value) ?? undefined,
     configValue: val,
@@ -218,10 +222,10 @@ function buildInputCommand<K extends keyof ConfigSchemas.Config>({
     inputProps?.display ??
     (isPartOfSubgruop
       ? "custom..."
-      : `${capitalizeFirstLetter(configMeta.displayString ?? key)}...`);
+      : `${capitalizeFirstLetter(configMeta.displayString ?? String(key))}...`);
 
   const result = {
-    id: `set${capitalizeFirstLetter(key)}Custom`,
+    id: `set${capitalizeFirstLetter(String(key))}Custom`,
     defaultValue:
       inputProps?.defaultValue ?? (() => Config[key]?.toString() ?? ""),
     configValue:

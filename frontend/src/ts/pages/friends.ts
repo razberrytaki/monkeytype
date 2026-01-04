@@ -1,7 +1,7 @@
 import Page from "./page";
 import * as Skeleton from "../utils/skeleton";
 import { SimpleModal } from "../utils/simple-modal";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import {
   intervalToDuration,
   format as dateFormat,

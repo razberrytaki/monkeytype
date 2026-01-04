@@ -1,6 +1,6 @@
 import Page from "./page";
 import * as Skeleton from "../utils/skeleton";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { ValidatedHtmlInputElement } from "../elements/input-validation";
 import { UserNameSchema, UserProfile } from "@monkeytype/schemas/users";
 import { remoteValidation } from "../utils/remote-validation";

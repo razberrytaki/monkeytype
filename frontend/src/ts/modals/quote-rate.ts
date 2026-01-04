@@ -1,5 +1,5 @@
 import { Language } from "@monkeytype/schemas/languages";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { Quote } from "../controllers/quotes-controller";
 import * as DB from "../db";
 import * as Loader from "../elements/loader";

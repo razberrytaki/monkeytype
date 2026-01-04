@@ -5,7 +5,7 @@ import { decompressFromURI } from "lz-ts";
 import * as TestState from "../test/test-state";
 import * as ManualRestart from "../test/manual-restart-tracker";
 import * as CustomText from "../test/custom-text";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as DB from "../db";
 import * as Loader from "../elements/loader";
 import * as AccountButton from "../elements/account-button";

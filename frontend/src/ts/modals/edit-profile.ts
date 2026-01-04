@@ -1,4 +1,4 @@
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { getHTMLById } from "../controllers/badge-controller";
 import * as DB from "../db";
 import * as Loader from "../elements/loader";

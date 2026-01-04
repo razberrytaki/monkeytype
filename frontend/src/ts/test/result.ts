@@ -35,7 +35,7 @@ import type {
   AnnotationOptions,
   LabelPosition,
 } from "chartjs-plugin-annotation";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { CompletedEvent } from "@monkeytype/schemas/results";
 import { getActiveFunboxes, isFunboxActiveWithProperty } from "./funbox/list";
 import { getFunbox } from "@monkeytype/funbox";

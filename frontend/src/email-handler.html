@@ -168,17 +168,18 @@
   </body>
   <script type="module">
     import $ from "jquery";
-    import {
-      applyActionCode,
-      verifyPasswordResetCode,
-      confirmPasswordReset,
-      checkActionCode,
-      sendPasswordResetEmail,
-      signInWithEmailAndPassword,
-      getAuth,
-    } from "firebase/auth";
-    import { initializeApp } from "firebase/app";
-    import { firebaseConfig } from "./ts/constants/firebase-config";
+    // Firebase imports stubbed for privacy fork
+    // import {
+    //   applyActionCode,
+    //   verifyPasswordResetCode,
+    //   confirmPasswordReset,
+    //   checkActionCode,
+    //   sendPasswordResetEmail,
+    //   signInWithEmailAndPassword,
+    //   getAuth,
+    // } from "firebase/auth";
+    // import { initializeApp } from "firebase/app";
+    // import { firebaseConfig } from "./ts/constants/firebase-config";
 
     const app = initializeApp(firebaseConfig);
     const Auth = getAuth(app);

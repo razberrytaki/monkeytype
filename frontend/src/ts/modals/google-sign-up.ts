@@ -6,7 +6,7 @@ import {
   UserCredential,
   getAdditionalUserInfo,
 } from "firebase/auth";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { createErrorMessage } from "../utils/misc";
 import * as LoginPage from "../pages/login";
 import * as AccountController from "../auth";

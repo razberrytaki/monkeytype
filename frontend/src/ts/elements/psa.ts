@@ -1,4 +1,4 @@
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { isDevEnvironment } from "../utils/misc";
 import { secondsToString } from "../utils/date-and-time";
 import * as Notifications from "./notifications";

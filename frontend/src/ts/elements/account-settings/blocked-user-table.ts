@@ -1,6 +1,6 @@
 import * as Notifications from "../../elements/notifications";
 import { Connection } from "@monkeytype/schemas/connections";
-import Ape from "../../ape";
+import { Ape } from "../../ape";
 import { format } from "date-fns/format";
 import { isAuthenticated } from "../../firebase";
 import { getReceiverUid } from "../../pages/friends";

@@ -3,7 +3,7 @@ import * as Strings from "../../utils/strings";
 import * as DB from "../../db";
 import Config from "../../config";
 import * as Notifications from "../notifications";
-import Ape from "../../ape/index";
+import { Ape } from "../../ape/index";
 import * as Loader from "../loader";
 import SlimSelect from "slim-select";
 import { QuoteLength } from "@monkeytype/schemas/configs";
@@ -324,7 +324,7 @@ export function updateActive(): void {
 
       if (groupsUsingSelect.has(group)) {
         const option = $(
-          `.pageAccount .group.filterButtons .filterGroup[group="${group}"] option[value="${filter}"]`,
+          `.pageAccount .group.filterButtons .filterGroup[group="${String(group)}"] option[value="${String(filter)}"]`,
         );
         if (filterValue === true) {
           option.prop("selected", true);
@@ -335,11 +335,11 @@ export function updateActive(): void {
         let buttonEl;
         if (group === "date") {
           buttonEl = $(
-            `.pageAccount .group.topFilters .filterGroup[group="${group}"] button[filter="${filter}"]`,
+            `.pageAccount .group.topFilters .filterGroup[group="${String(group)}"] button[filter="${String(filter)}"]`,
           );
         } else {
           buttonEl = $(
-            `.pageAccount .group.filterButtons .filterGroup[group="${group}"] button[filter="${filter}"]`,
+            `.pageAccount .group.filterButtons .filterGroup[group="${String(group)}"] button[filter="${String(filter)}"]`,
           );
         }
         if (filterValue === true) {

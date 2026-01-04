@@ -14,7 +14,7 @@ import {
 import QuotesController, { Quote } from "../controllers/quotes-controller";
 import { isAuthenticated } from "../firebase";
 import { debounce } from "throttle-debounce";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as Loader from "../elements/loader";
 import SlimSelect from "slim-select";
 import * as TestState from "../test/test-state";

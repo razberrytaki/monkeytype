@@ -1,5 +1,5 @@
 import { formatDistanceToNowStrict } from "date-fns/formatDistanceToNowStrict";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import { isAuthenticated } from "../firebase";
 import * as DB from "../db";
 import * as NotificationEvent from "../observables/notification-event";

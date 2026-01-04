@@ -1,6 +1,6 @@
 import * as CaptchaController from "../controllers/captcha-controller";
 import AnimatedModal from "../utils/animated-modal";
-import Ape from "../ape/index";
+import { Ape } from "../ape";
 import * as Notifications from "../elements/notifications";
 import * as Loader from "../elements/loader";
 import { UserEmailSchema } from "@monkeytype/schemas/users";

@@ -26,7 +26,7 @@ const OXLINT_SUMMARY_REGEX = /Found (\d+) warnings? and (\d+) errors?/;
 export function oxlintChecker(options: OxlintCheckerOptions = {}): Plugin {
   const {
     debounceDelay = 125,
-    typeAware = true,
+    typeAware = false,
     overlay = true,
     extensions = [".ts", ".tsx", ".js", ".jsx"],
   } = options;
@@ -276,7 +276,7 @@ export function oxlintChecker(options: OxlintCheckerOptions = {}): Plugin {
 
       try {
         const output = execSync(
-          "npx oxlint . && npx oxlint . --type-aware --type-check",
+          "npx oxlint . && npx oxlint . --type-aware --type-check -c .oxlintrc-plugin.json",
           {
             cwd: process.cwd(),
             encoding: "utf-8",

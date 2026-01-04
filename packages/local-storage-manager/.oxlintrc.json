@@ -1,4 +1,5 @@
 {
-  "extends": "../oxlint-config/index.json",
+  "ignorePatterns": ["node_modules", "dist", ".turbo"],
+  "extends": ["../oxlint-config/index.jsonc"],
   "rules": {}
 }

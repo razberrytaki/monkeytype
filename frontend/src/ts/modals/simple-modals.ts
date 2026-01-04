@@ -1,4 +1,4 @@
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as AccountController from "../auth";
 import * as DB from "../db";
 import { resetConfig, setConfig } from "../config";

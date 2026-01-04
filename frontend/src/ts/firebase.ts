@@ -10,6 +10,10 @@ export function isAuthenticated(): boolean {
   return false;
 }
 
+export function isAuthAvailable(): boolean {
+  return false;
+}
+
 export function getAuthenticatedUser(): never {
   throw new Error("Authentication removed in privacy fork");
 }

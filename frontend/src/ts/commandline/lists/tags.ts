@@ -32,7 +32,7 @@ function update(): void {
   subgroup.list = [];
 
   if (
-    snapshot !== undefined &&
+    snapshot !== null &&
     snapshot.tags !== undefined &&
     snapshot.tags.length > 0
   ) {
@@ -45,7 +45,7 @@ function update(): void {
         const snapshot = DB.getSnapshot();
         if (!snapshot) return;
 
-        snapshot.tags = snapshot.tags?.map((tag) => {
+        snapshot.tags = snapshot.tags.map((tag) => {
           tag.active = false;
 
           return tag;

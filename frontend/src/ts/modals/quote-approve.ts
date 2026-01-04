@@ -1,5 +1,5 @@
 import { ElementWithUtils } from "../utils/dom";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as Loader from "../elements/loader";
 import * as Notifications from "../elements/notifications";
 import { format } from "date-fns/format";

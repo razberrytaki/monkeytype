@@ -1,4 +1,4 @@
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as DB from "../db";
 import { IsValidResponse } from "../elements/input-validation";
 import * as Settings from "../pages/settings";

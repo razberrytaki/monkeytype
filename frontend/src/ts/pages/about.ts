@@ -1,7 +1,7 @@
 import * as Misc from "../utils/misc";
 import * as JSONData from "../utils/json-data";
 import Page from "./page";
-import Ape from "../ape";
+import { Ape } from "../ape";
 import * as Notifications from "../elements/notifications";
 import * as ChartController from "../controllers/chart-controller";
 import * as ConnectionState from "../states/connection";

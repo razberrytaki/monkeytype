@@ -418,7 +418,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
           "3": "square",
           "4": "punch miss",
         };
-        return map[value];
+        return map[value] ?? "";
       },
       hover: (value) => {
         if (value === "off") {
@@ -729,7 +729,7 @@ export const commandlineConfigMetadata: CommandlineConfigMetadataObject = {
           "3": "ultra",
           "4": "over 9000",
         };
-        return map[value];
+        return map[value] ?? "";
       },
     },
   },

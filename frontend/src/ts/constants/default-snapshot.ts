@@ -16,6 +16,16 @@ import { Preset } from "@monkeytype/schemas/presets";
 import { Language } from "@monkeytype/schemas/languages";
 import { ConnectionStatus } from "@monkeytype/schemas/connections";
 
+export type CustomTheme = {
+  name: string;
+  colors: Record<string, string>;
+  bgColor?: string;
+  bgImage?: string;
+  mainColor?: string;
+  subColor?: string;
+  textColor?: string;
+};
+
 export type SnapshotUserTag = UserTag & {
   active?: boolean;
   display: string;
@@ -81,6 +91,7 @@ export type Snapshot = Omit<
   config: Config;
   tags: SnapshotUserTag[];
   presets: SnapshotPreset[];
+  customThemes: CustomTheme[];
   results?: SnapshotResult<Mode>[];
   xp: number;
   testActivity?: ModifiableTestActivityCalendar;
