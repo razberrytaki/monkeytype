@@ -493,6 +493,8 @@ function hideSpinner(): void {
 }
 
 function update(): void {
+  qs(".pageFriends")?.addClass("hidden");
+  return;
   updatePendingConnections();
   updateFriends();
 }
