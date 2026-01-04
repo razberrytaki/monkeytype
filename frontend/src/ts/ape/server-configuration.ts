@@ -1,31 +1,51 @@
-import { Configuration } from "@monkeytype/schemas/configuration";
-import Ape from ".";
-import { promiseWithResolvers } from "../utils/misc";
+/**
+ * @deprecated Server configuration removed in privacy fork
+ * This file is a stub to prevent build errors.
+ */
 
-let config: Configuration | undefined = undefined;
+type ServerConfig = {
+  results?: {
+    limits?: {
+      maxBatchSize: number;
+    };
+  };
+  users?: {
+    signUp: boolean;
+    premium?: {
+      enabled: boolean;
+    };
+  };
+  connections?: {
+    enabled: boolean;
+  };
+};
 
-const {
-  promise: configurationPromise,
-  resolve,
-  reject,
-} = promiseWithResolvers<boolean>();
+let config: ServerConfig | undefined = undefined;
+
+const { promise: configurationPromise, resolve } = promiseWithResolvers<boolean>();
 
 export { configurationPromise };
 
-export function get(): Configuration | undefined {
+export function get(): ServerConfig | undefined {
   return config;
 }
 
 export async function sync(): Promise<void> {
-  const response = await Ape.configuration.get();
+  resolve(true);
+}
 
-  if (response.status !== 200) {
-    const message = `Could not fetch configuration: ${response.body.message}`;
-    console.error(message);
-    reject(message);
-    return;
-  } else {
-    config = response.body.data ?? undefined;
-    resolve(true);
-  }
+function promiseWithResolvers<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve: (value: T) => void;
+  let reject: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
 }

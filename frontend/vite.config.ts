@@ -4,7 +4,6 @@ import {
   UserConfig,
   BuildEnvironmentOptions,
   PluginOption,
-  Plugin,
   CSSOptions,
 } from "vite";
 import path from "node:path";
@@ -23,39 +22,21 @@ import { oxlintChecker } from "./vite-plugins/oxlint-checker";
 import Inspect from "vite-plugin-inspect";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
 import { VitePWA } from "vite-plugin-pwa";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
-import replace from "vite-plugin-filter-replace";
 // eslint-disable-next-line import/no-unresolved
 import UnpluginInjectPreload from "unplugin-inject-preload/vite";
-import { KnownFontName } from "@monkeytype/schemas/fonts";
 
 export default defineConfig(({ mode }): UserConfig => {
   const env = loadEnv(mode, process.cwd(), "");
-  const useSentry = env["SENTRY"] !== undefined;
   const isDevelopment = mode !== "production";
 
-  if (!isDevelopment) {
-    if (env["RECAPTCHA_SITE_KEY"] === undefined) {
-      throw new Error(`${mode}: RECAPTCHA_SITE_KEY is not defined`);
-    }
-    if (useSentry && env["SENTRY_AUTH_TOKEN"] === undefined) {
-      throw new Error(`${mode}: SENTRY_AUTH_TOKEN is not defined`);
-    }
-  }
-
   return {
-    plugins: getPlugins({ isDevelopment, useSentry: useSentry, env }),
-    build: getBuildOptions({ enableSourceMaps: useSentry }),
+    plugins: getPlugins({ isDevelopment, env }),
+    build: getBuildOptions(),
     css: getCssOptions({ isDevelopment }),
     server: {
       open: env["SERVER_OPEN"] !== "false",
       port: 3000,
-      host: env["BACKEND_URL"] !== undefined,
-      watch: {
-        //we rebuild the whole contracts package when a file changes
-        //so we only want to watch one file
-        ignored: [/.*\/packages\/contracts\/dist\/(?!configs).*/],
-      },
+      host: false,
     },
     clearScreen: false,
     root: "src",
@@ -70,11 +51,9 @@ export default defineConfig(({ mode }): UserConfig => {
 function getPlugins({
   isDevelopment,
   env,
-  useSentry,
 }: {
   isDevelopment: boolean;
   env: Record<string, string>;
-  useSentry: boolean;
 }): PluginOption[] {
   const clientVersion = getClientVersion(isDevelopment);
 
@@ -133,14 +112,6 @@ function getPlugins({
         runtimeCaching: [
           {
             urlPattern: (options) => {
-              const isApi = options.url.hostname === "api.monkeytype.com";
-              return options.sameOrigin && !isApi;
-            },
-            handler: "NetworkFirst",
-            options: {},
-          },
-          {
-            urlPattern: (options) => {
               //disable caching for version.json
               return options.url.pathname === "/version.json";
             },
@@ -150,33 +121,6 @@ function getPlugins({
         ],
       },
     }),
-    useSentry
-      ? (sentryVitePlugin({
-          authToken: env["SENTRY_AUTH_TOKEN"],
-          org: "monkeytype",
-          project: "frontend",
-          release: {
-            name: clientVersion,
-          },
-          applicationKey: "monkeytype-frontend",
-        }) as Plugin)
-      : null,
-    replace([
-      {
-        filter: ["src/ts/firebase.ts"],
-        replace: {
-          from: `"./constants/firebase-config.ts"`,
-          to: `"./constants/firebase-config-live.ts"`,
-        },
-      },
-      {
-        filter: ["src/email-handler.html"],
-        replace: {
-          from: `"./ts/constants/firebase-config"`,
-          to: `"./ts/constants/firebase-config-live"`,
-        },
-      },
-    ]),
     UnpluginInjectPreload({
       files: [
         {
@@ -208,13 +152,9 @@ function getPlugins({
   );
 }
 
-function getBuildOptions({
-  enableSourceMaps,
-}: {
-  enableSourceMaps: boolean;
-}): BuildEnvironmentOptions {
+function getBuildOptions(): BuildEnvironmentOptions {
   return {
-    sourcemap: enableSourceMaps,
+    sourcemap: false,
     emptyOutDir: true,
     outDir: "../dist",
     assetsInlineLimit: 0, //dont inline small files as data
@@ -255,14 +195,8 @@ function getBuildOptions({
         chunkFileNames: "js/[name].[hash].js",
         entryFileNames: "js/[name].[hash].js",
         manualChunks: (id) => {
-          if (id.includes("@sentry")) {
-            return "vendor-sentry";
-          }
           if (id.includes("jquery")) {
             return "vendor-jquery";
-          }
-          if (id.includes("@firebase")) {
-            return "vendor-firebase";
           }
           if (id.includes("monkeytype/packages")) {
             return "monkeytype-packages";

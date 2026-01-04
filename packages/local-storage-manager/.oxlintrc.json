@@ -1,0 +1,4 @@
+{
+  "extends": "../oxlint-config/index.json",
+  "rules": {}
+}
