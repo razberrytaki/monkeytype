@@ -467,4 +467,26 @@ export const Ape = {
       return createSuccessResponse({ success: true });
     },
   },
+
+  public: {
+    getSpeedHistogram: async () => {
+      logApiCall("public.getSpeedHistogram");
+      return createSuccessResponse([]);
+    },
+
+    getTypingStats: async () => {
+      logApiCall("public.getTypingStats");
+      return createSuccessResponse({
+        testsCompleted: 0,
+        timeTyping: 0,
+      });
+    },
+  },
+
+  psas: {
+    get: async () => {
+      logApiCall("psas.get");
+      return createSuccessResponse([]);
+    },
+  },
 };
