@@ -4,6 +4,7 @@ export const StorageKey = {
   SETTINGS: "mt_settings",
   HISTORY: "mt_history",
   PERSONAL_BEST: "mt_personal_best",
+  AVERAGES: "mt_averages",
   TAGS: "mt_tags",
   VERSION: "mt_version",
 } as const;
@@ -27,6 +28,14 @@ export const TypedResultSchema = z.object({
 
 export type TypedResult = z.infer<typeof TypedResultSchema>;
 
+export const AverageEntrySchema = z.object({
+  wpm: z.number(),
+  acc: z.number(),
+  count: z.number(),
+});
+
+export type AverageEntry = z.infer<typeof AverageEntrySchema>;
+
 export const TagDataSchema = z.object({
   name: z.string(),
   stats: z.object({
@@ -43,6 +52,7 @@ export const StorageDataSchema = z.object({
   settings: z.unknown(),
   history: z.array(TypedResultSchema),
   personalBest: z.record(z.number()),
+  averages: z.record(AverageEntrySchema),
   tags: z.record(TagDataSchema),
 });
 
@@ -54,7 +64,7 @@ export type StorageError = Error & {
 
 export function createStorageError(
   code: StorageError["code"],
-  message: string
+  message: string,
 ): StorageError {
   const error = new Error(message) as StorageError;
   (error as StorageError).code = code;

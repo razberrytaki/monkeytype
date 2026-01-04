@@ -3,12 +3,9 @@ import type {
   StorageError,
   TagData,
   TypedResult,
+  AverageEntry,
 } from "./types.js";
-import {
-  StorageKey,
-  StorageDataSchema,
-  createStorageError,
-} from "./types.js";
+import { StorageKey, StorageDataSchema, createStorageError } from "./types.js";
 
 const MAX_HISTORY_SIZE = 500;
 
@@ -238,11 +235,54 @@ class LocalStorageManager {
     }
   }
 
+  public getAverages(): Record<string, AverageEntry> {
+    const data = this.get(StorageKey.AVERAGES);
+    if (data === null || data === "") return {};
+    try {
+      return JSON.parse(data) as Record<string, AverageEntry>;
+    } catch (error) {
+      console.warn("Failed to parse averages:", error);
+      return {};
+    }
+  }
+
+  public setAverages(averages: Record<string, AverageEntry>): void {
+    try {
+      this.set(StorageKey.AVERAGES, JSON.stringify(averages));
+    } catch (error) {
+      throw createStorageError("WRITE_FAILED", "Failed to save averages");
+    }
+  }
+
+  public updateAverage(
+    key: string,
+    wpm: number,
+    acc: number,
+    count: number = 1,
+  ): void {
+    const averages = this.getAverages();
+    const current = averages[key];
+
+    if (current === undefined) {
+      averages[key] = { wpm, acc, count };
+      this.setAverages(averages);
+      return;
+    }
+
+    averages[key] = {
+      wpm: Math.round(wpm),
+      acc: Math.round(acc),
+      count: current.count + count,
+    };
+    this.setAverages(averages);
+  }
+
   public exportData(): string {
     const data: StorageData = {
       settings: this.getSettings(),
       history: this.getHistory(),
       personalBest: this.getPersonalBest(),
+      averages: this.getAverages(),
       tags: this.getTags(),
     };
     return JSON.stringify(data, null, 2);
@@ -258,6 +298,7 @@ class LocalStorageManager {
       }
       this.setHistory(validated.history);
       this.setPersonalBest(validated.personalBest);
+      this.setAverages(validated.averages);
       this.setTags(validated.tags);
     } catch (error) {
       throw createStorageError("READ_FAILED", "Failed to import data");
@@ -269,4 +310,11 @@ const manager = new LocalStorageManager();
 
 export default manager;
 export { LocalStorageManager };
-export type { StorageData, StorageError, StorageKey, TagData, TypedResult };
+export type {
+  StorageData,
+  StorageError,
+  StorageKey,
+  TagData,
+  TypedResult,
+  AverageEntry,
+};
