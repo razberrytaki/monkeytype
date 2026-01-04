@@ -103,84 +103,374 @@ The `localStorage-manager` package provides:
 
 ## API Routing
 
-### Strategy: Stub Pattern
+### Strategy: Categorized Stub Pattern
 
-Replace `Ape` API client with a stub that:
+Based on comprehensive analysis of 27 files using Ape API across 60+ call sites, implement a categorized stub strategy:
 
-1. Returns mock data for read operations
-2. Performs no-op for write operations
-3. Throws errors for unsupported features
+1. **localStorage replacement**: Core features (results, tags, presets)
+2. **No-op with mock data**: Optional features (social, quotes)
+3. **Optimistic updates**: User preferences (profile, settings)
+4. **UI hiding**: Admin/community features (approvals, reports)
+5. **Environment-aware logging**: Development warnings, production silence
 
-### Implementation: Create `frontend/src/ts/ape/index.ts`
+### Ape API Usage Analysis
+
+**Scope:**
+
+- **27 files** import Ape API
+- **48 unique API methods** called
+- **60+ call locations** identified
+- **9 critical methods** that will crash app if not stubbed
+- **17 medium priority methods** affecting UX
+- **22 low priority methods** for optional features
+
+### API Methods by Category & Priority
+
+#### 1. RESULTS API (Critical - 2 methods)
+
+| Method       | Files                     | Frequency | Priority     | Strategy     | Return Type                                                                                                                                          |
+| ------------ | ------------------------- | --------- | ------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add`        | test-logic.ts, results.ts | 3 calls   | **Critical** | localStorage | `{ status: 200, body: { message: string, data: { insertedId: string, xp: number, streak: number, isPb: boolean, dailyLeaderboardRank?: number } } }` |
+| `updateTags` | edit-result-tags.ts       | 1 call    | **Critical** | localStorage | `{ status: 200, body: { message: string, data: { tagPbs: Array<{ tag: string, wpm: number, acc: number }> } } }`                                     |
+
+**Context:** Test completion flow (test-logic.ts:1227), result syncing (results.ts:13)
+**Impact:** Cannot save test results, breaks core typing functionality
+**Implementation:** Store in localStorage with `storageManager.addResult()`, return mock success response
+
+---
+
+#### 2. USERS - PROFILE API (High - 8 methods)
+
+| Method                | Files                               | Frequency | Priority   | Strategy   | Return Type                                                           |
+| --------------------- | ----------------------------------- | --------- | ---------- | ---------- | --------------------------------------------------------------------- |
+| `getNameAvailability` | google-sign-up.ts, simple-modals.ts | 2 calls   | **High**   | no-op      | `{ status: 200, body: { data: { available: true } } }`                |
+| `getProfile`          | profile-search.ts, profile.ts       | 2 calls   | **High**   | no-op      | `{ status: 200, body: { message: string, data: UserProfile } }`       |
+| `updateProfile`       | edit-profile.ts                     | 1 call    | **High**   | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `create`              | google-sign-up.ts                   | 1 call    | **Medium** | no-op      | `{ status: 200, body: { message: string, data: { uid: string } } }`   |
+| `updateName`          | simple-modals.ts                    | 1 call    | **Medium** | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `updateEmail`         | simple-modals.ts                    | 1 call    | **Medium** | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `updatePassword`      | simple-modals.ts                    | 1 call    | **High**   | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `delete`              | simple-modals.ts, google-sign-up.ts | 2 calls   | **High**   | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Additional Profile Methods:**
+
+| Method                 | Files                 | Priority   | Strategy   | Return Type                                                                                  |
+| ---------------------- | --------------------- | ---------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `forgotPasswordEmail`  | forgot-password.ts    | **Low**    | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `reset`                | simple-modals.ts      | **High**   | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `linkDiscord`          | url-handler.ts        | **Low**    | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `unlinkDiscord`        | simple-modals.ts      | **Low**    | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `getInbox`             | alerts.ts             | **High**   | no-op      | `{ status: 200, body: { message: string, data: { inbox: MonkeyMail[], maxMail: number } } }` |
+| `updateInbox`          | alerts.ts             | **Medium** | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `report`               | user-report.ts        | **Low**    | no-op      | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `optOutOfLeaderboards` | simple-modals.ts      | **High**   | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `deletePersonalBests`  | simple-modals.ts      | **High**   | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+| `setStreakHourOffset`  | streak-hour-offset.ts | **Low**    | optimistic | `{ status: 200, body: { message: string, data: { success: true } } }`                        |
+
+**Context:** Account management, registration, profile updates
+**Impact:** Authentication flows, profile viewing, notifications
+**Implementation:** No-op for auth-related calls, localStorage cache for profile data
+
+---
+
+#### 3. USERS - QUOTES API (Low - 2 methods)
+
+| Method                     | Files     | Frequency | Priority | Strategy     | Return Type                                                           |
+| -------------------------- | --------- | --------- | -------- | ------------ | --------------------------------------------------------------------- |
+| `removeQuoteFromFavorites` | result.ts | 1 call    | **Low**  | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `addQuoteToFavorites`      | result.ts | 1 call    | **Low**  | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** Favorite quotes management from result page
+**Implementation:** Store favorite quotes in localStorage `mt_favorites` key
+
+---
+
+#### 4. USERS - TAGS API (Medium - 4 methods)
+
+| Method                  | Files       | Frequency | Priority   | Strategy     | Return Type                                                           |
+| ----------------------- | ----------- | --------- | ---------- | ------------ | --------------------------------------------------------------------- |
+| `createTag`             | edit-tag.ts | 1 call    | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `editTag`               | edit-tag.ts | 1 call    | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `deleteTag`             | edit-tag.ts | 1 call    | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `deleteTagPersonalBest` | edit-tag.ts | 1 call    | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** Tag CRUD operations for result categorization
+**Implementation:** Use existing `storageManager.getTags()` and `storageManager.setTags()`
+
+---
+
+#### 5. QUOTES API (Low - 8 methods)
+
+| Method                | Files            | Frequency | Priority | Strategy     | Return Type                                                           |
+| --------------------- | ---------------- | --------- | -------- | ------------ | --------------------------------------------------------------------- |
+| `get`                 | quote-approve.ts | 1 call    | **Low**  | hide         | `{ status: 200, body: { message: string, data: Quote[] } }`           |
+| `add`                 | quote-submit.ts  | 1 call    | **Low**  | hide         | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `approveSubmission`   | quote-approve.ts | 2 calls   | **Low**  | hide         | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `rejectSubmission`    | quote-approve.ts | 1 call    | **Low**  | hide         | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `isSubmissionEnabled` | quote-search.ts  | 1 call    | **Low**  | hide         | `{ status: 200, body: { data: { enabled: false } } }`                 |
+| `report`              | quote-report.ts  | 1 call    | **Low**  | hide         | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `getRating`           | quote-rate.ts    | 1 call    | **Low**  | hide         | `{ status: 200, body: { data: { rating: 0, count: 0 } } }`            |
+| `addRating`           | quote-rate.ts    | 1 call    | **Low**  | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** Quote submission, approval, reporting, rating
+**Implementation:** Hide submission/approval UI entirely, store ratings in localStorage
+
+---
+
+#### 6. PRESETS API (Medium - 3 methods)
+
+| Method   | Files          | Frequency | Priority   | Strategy     | Return Type                                                           |
+| -------- | -------------- | --------- | ---------- | ------------ | --------------------------------------------------------------------- |
+| `add`    | edit-preset.ts | 1 call    | **Low**    | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `save`   | edit-preset.ts | 1 call    | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `delete` | edit-preset.ts | 1 call    | **Low**    | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** User-defined test configuration presets
+**Implementation:** Store in localStorage `mt_presets` key
+
+---
+
+#### 7. RESULT FILTERS API (Low - 2 methods)
+
+| Method                     | Files             | Frequency | Priority | Strategy     | Return Type                                                           |
+| -------------------------- | ----------------- | --------- | -------- | ------------ | --------------------------------------------------------------------- |
+| `addResultFilterPreset`    | result-filters.ts | 1 call    | **Low**  | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `removeResultFilterPreset` | result-filters.ts | 1 call    | **Low**  | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Implementation:** Store in localStorage `mt_result_filters` key
+
+---
+
+#### 8. CONNECTIONS API (Medium - 4 methods)
+
+| Method                    | Files                 | Frequency | Priority   | Strategy | Return Type                                                           |
+| ------------------------- | --------------------- | --------- | ---------- | -------- | --------------------------------------------------------------------- |
+| `get` (blocked)           | blocked-user-table.ts | 1 call    | **Low**    | no-op    | `{ status: 200, body: { data: [] } }`                                 |
+| `delete` (unblock)        | blocked-user-table.ts | 1 call    | **Low**    | no-op    | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `create` (friend request) | friends.ts            | 1 call    | **Medium** | no-op    | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `get` (friends list)      | friends.ts            | 1 call    | **High**   | no-op    | `{ status: 200, body: { data: [] } }`                                 |
+| `update` (accept/reject)  | friends.ts            | 1 call    | **Medium** | no-op    | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** Social features (friends, blocking)
+**Implementation:** Hide friend UI, return empty friend lists
+
+---
+
+#### 9. LEADERBOARDS API (Low - 5 methods)
+
+| Method         | Files           | Frequency | Priority | Strategy | Return Type                                       |
+| -------------- | --------------- | --------- | -------- | -------- | ------------------------------------------------- |
+| `get`          | leaderboards.ts | 1 call    | **Low**  | no-op    | `{ status: 200, body: { data: [] } }`             |
+| `getDaily`     | leaderboards.ts | 1 call    | **Low**  | no-op    | `{ status: 200, body: { data: [] } }`             |
+| `getDailyRank` | leaderboards.ts | 1 call    | **Low**  | no-op    | `{ status: 200, body: { data: { rank: null } } }` |
+| `getWeeklyXp`  | leaderboards.ts | 1 call    | **Low**  | no-op    | `{ status: 200, body: { data: [] } }`             |
+| `getRank`      | leaderboards.ts | 1 call    | **Low**  | no-op    | `{ status: 200, body: { data: { rank: null } } }` |
+
+**Context:** Competitive ranking display
+**Implementation:** Return empty data, hide leaderboard page
+
+---
+
+#### 10. APE KEYS API (Medium - 4 methods)
+
+| Method   | Files                      | Frequency  | Priority     | Strategy                                                              | Return Type                                                           |
+| -------- | -------------------------- | ---------- | ------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `get`    | ape-key-table.ts           | 1 call     | **Medium**   | localStorage                                                          | `{ status: 200, body: { data: Array<ApeKey> } }`                      |
+| `add`    | ape-key-table.ts           | 1 call     | **Medium**   | localStorage                                                          | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `save`   | ape-key-table.ts (2 calls) | **Medium** | localStorage | `{ status: 200, body: { message: string, data: { success: true } } }` |
+| `delete` | ape-key-table.ts           | 1 call     | **Medium**   | localStorage                                                          | `{ status: 200, body: { message: string, data: { success: true } } }` |
+
+**Context:** Developer API key management
+**Implementation:** Store in localStorage `mt_ape_keys` key
+
+---
+
+#### 11. PUBLIC API (Low - 2 methods)
+
+| Method              | Files    | Priority | Strategy | Return Type                                                                       |
+| ------------------- | -------- | -------- | -------- | --------------------------------------------------------------------------------- |
+| `getSpeedHistogram` | about.ts | **Low**  | hide     | `{ status: 200, body: { data: { wpm: number, count: number }[] } }`               |
+| `getTypingStats`    | about.ts | **Low**  | hide     | `{ status: 200, body: { data: { testsCompleted: number, timeTyping: number } } }` |
+
+**Implementation:** Hide from about page or show static mock data
+
+---
+
+#### 12. PSAs API (Low - 1 method)
+
+| Method | Files  | Priority | Strategy | Return Type                                   |
+| ------ | ------ | -------- | -------- | --------------------------------------------- |
+| `get`  | psa.ts | **Low**  | hide     | `{ status: 200, body: { data: Array<PSA> } }` |
+
+**Implementation:** Hide PSA banner entirely
+
+---
+
+### Critical Methods That Cause Runtime Errors
+
+If these methods are not properly stubbed, the application **will crash**:
+
+1. **Ape.results.add** - test-logic.ts:1227
+   - Called on every test completion
+   - **Impact:** Cannot save results, breaks core functionality
+
+2. **Ape.users.getInbox** - alerts.ts:169
+   - Called on page load
+   - **Impact:** Cannot display notifications
+
+3. **Ape.users.getProfile** - profile.ts:93, profile-search.ts:36
+   - Called when viewing profiles
+   - **Impact:** Cannot display user profiles
+
+4. **Ape.users.getNameAvailability** - google-sign-up.ts:158, simple-modals.ts:485
+   - Called during form validation
+   - **Impact:** Cannot validate user names
+
+---
+
+### Data Flow & Dependencies
+
+#### Result Saving Flow
+
+```
+test-logic.ts (test completion)
+  └─> Ape.results.add(result)
+      └─> storageManager.addResult(result) [NEW]
+          └─> localStorage.setItem('mt_history', ...)
+              └─> XP bar update
+              └─> Personal best update
+              └─> Result display
+```
+
+#### User Authentication Flow
+
+```
+google-sign-up.ts
+  └─> Ape.users.create(userData)
+      └─> Ape.users.getNameAvailability(name) [validation]
+      └─> Ape.users.delete() [if fails]
+```
+
+#### Quote Management Flow
+
+```
+result.ts (after test)
+  ├─> Ape.users.addQuoteToFavorites(quoteId)
+  └─> Ape.users.removeQuoteFromFavorites(quoteId)
+      └─> localStorage 'mt_favorites' [NEW]
+```
+
+#### Profile Update Flow
+
+```
+edit-profile.ts
+  └─> Ape.users.updateProfile(profileData)
+      └─> localStorage cache update [NEW]
+      └─> UI optimistic update
+```
+
+---
+
+### Implementation Strategy
+
+#### Approach B: Categorized Stub Pattern
+
+**localStorage Replacement (15 methods):**
+
+- Results: add, updateTags
+- Tags: create, edit, delete, deleteTagPersonalBest
+- Quotes: addQuoteToFavorites, removeQuoteFromFavorites, addRating
+- Presets: add, save, delete
+- Result Filters: addResultFilterPreset, removeResultFilterPreset
+- APE Keys: get, add, save, delete
+
+**No-op with Mock Data (25 methods):**
+
+- Users profile: getNameAvailability, getProfile, updateProfile, create, updateName, updateEmail, updatePassword, delete, reset, forgotPasswordEmail, linkDiscord, unlinkDiscord, getInbox, updateInbox, report, optOutOfLeaderboards, deletePersonalBests, setStreakHourOffset
+- Connections: get, create, update
+- Leaderboards: get, getDaily, getDailyRank, getWeeklyXp, getRank
+
+**Hide (8 methods):**
+
+- Quotes: get, add, approveSubmission, rejectSubmission, isSubmissionEnabled, report, getRating
+- Public: getSpeedHistogram, getTypingStats
+- PSAs: get
+
+---
+
+#### Error Handling Strategy C: Environment-Aware
 
 ```typescript
-/**
- * @deprecated API client removed in privacy fork
- * All functionality moved to localStorage
- */
-export default {
+function isDevelopment(): boolean {
+  return import.meta.env.DEV || window.location.hostname === "localhost";
+}
+
+function logApiCall(method: string): void {
+  if (isDevelopment()) {
+    console.warn(
+      `[Privacy Fork] Ape.${method} called - using localStorage/no-op`,
+    );
+  }
+}
+
+// Example stub implementation
+const ApeStub = {
   results: {
-    add: async () => ({ status: 200, body: { data: { insertedId: null } } }),
-    get: async () => ({ status: 200, body: { data: [] } }),
-    updateTags: async () => ({
-      status: 200,
-      body: { data: { success: true } },
-    }),
+    add: async (params) => {
+      logApiCall("results.add");
+      storageManager.addResult(params.body.result);
+      return {
+        status: 200,
+        body: {
+          message: "Result saved locally",
+          data: { insertedId: null, xp: 0, streak: 0, isPb: false },
+        },
+      };
+    },
   },
-  users: {
-    getProfile: async () => ({
-      status: 404,
-      body: { message: "Not available" },
-    }),
-    updateProfile: async () => ({
-      status: 200,
-      body: { data: { success: true } },
-    }),
-    // All other user methods: no-op
-  },
-  leaderboards: {
-    get: async () => ({ status: 200, body: { data: [] } }),
-    getRank: async () => ({ status: 200, body: { data: { rank: null } } }),
-  },
-  // All other endpoints: return 404 or mock data
 };
 ```
 
-### Firebase Stub Strategy
+---
 
-Modify `frontend/src/ts/firebase.ts`:
+#### Legacy Code Handling Strategy C: Remove Unused Code
 
-```typescript
-/**
- * @deprecated Authentication removed in privacy fork
- * Always returns false/guest state
- */
-export function isAuthenticated(): boolean {
-  return false;
-}
+**Files using Ape that can be removed:**
 
-export function getAuthenticatedUser(): null {
-  return null;
-}
+- `frontend/src/ts/pages/account.ts` - Entire account page
+- `frontend/src/ts/pages/account-settings.ts` - Account settings page
+- `frontend/src/ts/pages/login.ts` - Login page
+- `frontend/src/ts/modals/register-captcha.ts` - Registration modal
+- `frontend/src/ts/observables/auth-event.ts` - Auth event handling
+- `frontend/src/ts/observables/google-sign-up-event.ts` - Google signup events
+- `frontend/src/ts/constants/firebase-config-example.ts` - Firebase config
+- `frontend/src/ts/sentry.ts` - Error tracking
+- `frontend/src/ts/states/connection.ts` - Connection state
 
-export function signOut(): Promise<void> {
-  return Promise.resolve();
-}
+**Files to update:**
 
-export const authPromise = Promise.resolve();
-export const isAuthAvailable = (): boolean => false;
-```
+- Keep only actual API usage stubs in `frontend/src/ts/ape/index.ts`
+- Remove unused imports from remaining 27 files
 
-### API Endpoint Mapping
+---
 
-| Original Endpoint   | Local Handling                     |
-| ------------------- | ---------------------------------- |
-| `Ape.results.add()` | Call `storageManager.addResult()`  |
-| `Ape.results.get()` | Call `storageManager.getHistory()` |
-| Authentication APIs | Always return false/guest          |
-| User profile APIs   | Return mock data (guest mode)      |
-| Leaderboard APIs    | Return empty data                  |
-| All other endpoints | No-op or return 404                |
+### API Endpoint Mapping (Updated)
+
+| Original Endpoint                 | Files Using It                      | Priority     | Local Handling                                 |
+| --------------------------------- | ----------------------------------- | ------------ | ---------------------------------------------- |
+| `Ape.results.add()`               | test-logic.ts, results.ts           | **Critical** | `storageManager.addResult()` + mock response   |
+| `Ape.results.updateTags()`        | edit-result-tags.ts                 | **Critical** | `storageManager.setTags()` + mock response     |
+| `Ape.users.getNameAvailability()` | google-sign-up.ts, simple-modals.ts | **High**     | Always return `{ available: true }`            |
+| `Ape.users.getProfile()`          | profile-search.ts, profile.ts       | **High**     | Return guest profile mock                      |
+| `Ape.users.getInbox()`            | alerts.ts                           | **High**     | Return empty inbox `{ inbox: [], maxMail: 0 }` |
+| `Ape.users.updateProfile()`       | edit-profile.ts                     | **High**     | Optimistic localStorage update + success mock  |
+| Authentication APIs               | Multiple files                      | **Medium**   | No-op, return success                          |
+| User profile APIs                 | Multiple files                      | **Medium**   | No-op with mock data                           |
+| Leaderboard APIs                  | leaderboards.ts                     | **Low**      | Return empty data `[]`                         |
+| Quote APIs                        | Multiple modals                     | **Low**      | Hide UI, no-op                                 |
+| Social APIs                       | friends.ts, blocked-user-table.ts   | **Low**      | No-op, hide friends page                       |
+| Public APIs                       | about.ts                            | **Low**      | Hide or use static mock data                   |
+| PSA APIs                          | psa.ts                              | **Low**      | Hide banner entirely                           |
 
 ## Backend Dependency Removal
 
@@ -666,19 +956,44 @@ describe("Privacy Fork E2E", () => {
   - [x] Personal best tracking
   - [x] Average calculation
   - [x] Error handling (quota, unavailable)
-- [ ] Create Ape API stub
-  - [ ] Replace all Ape methods with no-ops
-  - [ ] Ensure type-safe responses
-  - [ ] Handle all 73+ API call sites
-- [ ] Create Firebase stub
-  - [ ] Update `isAuthenticated()` to return `false`
-  - [ ] Update `getAuthenticatedUser()` to return `null`
-  - [ ] Remove auth initialization
-  - [ ] Remove Firebase SDK imports
+- [ ] Create Ape API stub (Critical - 48 methods, 27 files)
+  - [ ] Implement Results API stubs (2 methods)
+    - [ ] `Ape.results.add()` - localStorage + mock response
+    - [ ] `Ape.results.updateTags()` - localStorage + mock response
+  - [ ] Implement Users API stubs (19 methods)
+    - [ ] Profile: getProfile, updateProfile, updateName, updateEmail, updatePassword
+    - [ ] Auth: create, delete, reset, forgotPasswordEmail, getNameAvailability
+    - [ ] Social: linkDiscord, unlinkDiscord, report
+    - [ ] Inbox: getInbox, updateInbox
+    - [ ] Settings: optOutOfLeaderboards, deletePersonalBests, setStreakHourOffset
+  - [ ] Implement Quotes API stubs (8 methods)
+    - [ ] Admin: get, add, approveSubmission, rejectSubmission, isSubmissionEnabled, report, getRating
+    - [ ] User: addRating (localStorage)
+  - [ ] Implement Presets API stubs (3 methods)
+    - [ ] add, save, delete (localStorage)
+  - [ ] Implement Result Filters API stubs (2 methods)
+    - [ ] addResultFilterPreset, removeResultFilterPreset (localStorage)
+  - [ ] Implement Connections API stubs (4 methods)
+    - [ ] get (blocked), delete (unblock), create (friend request), update (accept/reject)
+  - [ ] Implement Leaderboards API stubs (5 methods)
+    - [ ] get, getDaily, getDailyRank, getWeeklyXp, getRank (no-op, return empty)
+  - [ ] Implement APE Keys API stubs (4 methods)
+    - [ ] get, add, save, delete (localStorage)
+  - [ ] Implement Public API stubs (2 methods)
+    - [ ] getSpeedHistogram, getTypingStats (hide or static mock)
+  - [ ] Implement PSAs API stub (1 method)
+    - [ ] get (hide)
+  - [ ] Ensure type-safe responses for all methods
+  - [ ] Add environment-aware logging (dev only)
+- [x] Create Firebase stub
+  - [x] Update `isAuthenticated()` to return `false`
+  - [x] Update `getAuthenticatedUser()` to return `null`
+  - [x] Remove auth initialization
+  - [x] Remove Firebase SDK imports
 - [x] Update DB stub
   - [x] Implement `getUserAverage10()`
   - [x] Implement `getLocalPB()`
-  - [ ] Update stub for all 90+ callsites
+  - [ ] Update stub for remaining calls (remove duplicates)
 
 ### Phase 2: Test Logic Integration
 
@@ -753,27 +1068,165 @@ describe("Privacy Fork E2E", () => {
 
 ### Key Files to Modify
 
-| File Path                                    | Changes Required                    |
-| -------------------------------------------- | ----------------------------------- |
-| `frontend/src/ts/test/test-logic.ts`         | Replace Ape calls with localStorage |
-| `frontend/src/ts/test/result.ts`             | Hide XP, streak, leaderboard        |
-| `frontend/src/ts/ape/index.ts`               | Create stub (new file)              |
-| `frontend/src/ts/firebase.ts`                | Already stubbed, verify all usages  |
-| `frontend/src/ts/db.ts`                      | Already partially stubbed           |
-| `frontend/src/ts/pages/leaderboards.ts`      | Show empty state                    |
-| `frontend/src/ts/commandline/lists.ts`       | Remove auth/leaderboard commands    |
-| `frontend/src/ts/elements/account-button.ts` | Hide login/signup                   |
+| File Path                                                    | Priority     | Changes Required                                             |
+| ------------------------------------------------------------ | ------------ | ------------------------------------------------------------ |
+| `frontend/src/ts/ape/index.ts`                               | **Critical** | Create complete stub with 48 methods                         |
+| `frontend/src/ts/test/test-logic.ts`                         | **Critical** | Replace Ape.results.add() with localStorage                  |
+| `frontend/src/ts/test/result.ts`                             | **Critical** | Remove XP, streak, daily leaderboard; update quote favorites |
+| `frontend/src/ts/utils/results.ts`                           | **High**     | Remove Ape.results.add() calls                               |
+| `frontend/src/ts/db.ts`                                      | **High**     | Remove duplicate code, verify all stubs work                 |
+| `frontend/src/ts/pages/leaderboards.ts`                      | **Medium**   | Show empty state, hide all leaderboard UI                    |
+| `frontend/src/ts/pages/profile.ts`                           | **Medium**   | Hide user profile functionality                              |
+| `frontend/src/ts/pages/profile-search.ts`                    | **Medium**   | Hide profile search functionality                            |
+| `frontend/src/ts/pages/friends.ts`                           | **Medium**   | Hide friends page entirely                                   |
+| `frontend/src/ts/commandline/lists/navigation.ts`            | **Medium**   | Remove account and leaderboard navigation commands           |
+| `frontend/src/ts/elements/account-button.ts`                 | **Medium**   | Hide login/signup buttons, show guest status                 |
+| `frontend/src/ts/modals/edit-tag.ts`                         | **Medium**   | Update to use localStorage for tags                          |
+| `frontend/src/ts/modals/edit-preset.ts`                      | **Medium**   | Update to use localStorage for presets                       |
+| `frontend/src/ts/modals/edit-profile.ts`                     | **Medium**   | Hide profile editing functionality                           |
+| `frontend/src/ts/elements/account-settings/ape-key-table.ts` | **Low**      | Update to use localStorage for API keys                      |
+| `frontend/src/ts/pages/about.ts`                             | **Low**      | Hide or mock public statistics                               |
+| `frontend/src/ts/elements/psa.ts`                            | **Low**      | Hide PSA banner entirely                                     |
+
+### Files to Remove (Legacy Code)
+
+| File Path                                              | Reason                                        |
+| ------------------------------------------------------ | --------------------------------------------- |
+| `frontend/src/ts/pages/account.ts`                     | Entire account page, no authentication needed |
+| `frontend/src/ts/pages/account-settings.ts`            | Account settings, no authentication needed    |
+| `frontend/src/ts/pages/login.ts`                       | Login page, authentication removed            |
+| `frontend/src/ts/modals/register-captcha.ts`           | Registration modal, no authentication         |
+| `frontend/src/ts/observables/auth-event.ts`            | Auth event handling, no authentication        |
+| `frontend/src/ts/observables/google-sign-up-event.ts`  | Google signup events, no authentication       |
+| `frontend/src/ts/constants/firebase-config-example.ts` | Firebase config, Firebase removed             |
+| `frontend/src/ts/sentry.ts`                            | Error tracking, Sentry integration removed    |
+| `frontend/src/ts/states/connection.ts`                 | Connection state checking, no backend         |
 
 ### File Count by API Usage
 
-| API Category     | Approx. Files Affected | Priority |
-| ---------------- | ---------------------- | -------- |
-| Authentication   | 15+                    | High     |
-| Results          | 5                      | High     |
-| User Profile     | 10+                    | Medium   |
-| Leaderboards     | 3                      | Medium   |
-| Quotes           | 5                      | Low      |
-| Social (friends) | 4                      | Low      |
+| API Category    | Methods | Files  | Call Sites | Priority     | Strategy           |
+| --------------- | ------- | ------ | ---------- | ------------ | ------------------ |
+| Results         | 2       | 2      | 4          | **Critical** | localStorage       |
+| Users - Profile | 17      | 12     | 25+        | **High**     | no-op + optimistic |
+| Users - Quotes  | 2       | 1      | 2          | **Low**      | localStorage       |
+| Quotes          | 8       | 5      | 9          | **Low**      | hide + no-op       |
+| Tags            | 4       | 1      | 4          | **Medium**   | localStorage       |
+| Presets         | 3       | 1      | 3          | **Medium**   | localStorage       |
+| Result Filters  | 2       | 1      | 2          | **Low**      | localStorage       |
+| Connections     | 4       | 2      | 5          | **Medium**   | no-op              |
+| Leaderboards    | 5       | 1      | 5          | **Low**      | no-op (empty)      |
+| APE Keys        | 4       | 1      | 5          | **Medium**   | localStorage       |
+| Public          | 2       | 1      | 2          | **Low**      | hide/static        |
+| PSAs            | 1       | 1      | 1          | **Low**      | hide               |
+| **Total**       | **48**  | **27** | **60+**    | -            | -                  |
+
+### Critical Methods Breakdown
+
+**Will crash app if not stubbed (9 methods):**
+
+1. `Ape.results.add` - test completion (3 calls)
+2. `Ape.results.updateTags` - tag management (1 call)
+3. `Ape.users.getNameAvailability` - form validation (2 calls)
+4. `Ape.users.getProfile` - profile viewing (2 calls)
+5. `Ape.users.getInbox` - notifications (1 call)
+6. `Ape.users.updateProfile` - profile editing (1 call)
+7. `Ape.users.create` - registration (1 call)
+8. `Ape.users.delete` - account deletion (2 calls)
+9. `Ape.users.reset` - data reset (1 call)
+
+### Files Using Ape API (27 total)
+
+| File                                            | API Methods Used                                                                                                                                                                            | Count |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| test/test-logic.ts                              | results.add                                                                                                                                                                                 | 1     |
+| test/result.ts                                  | results.updateTags, users.addQuoteToFavorites, users.removeQuoteFromFavorites                                                                                                               | 3     |
+| modals/streak-hour-offset.ts                    | users.setStreakHourOffset                                                                                                                                                                   | 1     |
+| modals/quote-approve.ts                         | quotes.get, quotes.approveSubmission                                                                                                                                                        | 2     |
+| modals/quote-submit.ts                          | quotes.add                                                                                                                                                                                  | 1     |
+| modals/edit-result-tags.ts                      | results.updateTags                                                                                                                                                                          | 1     |
+| modals/quote-rate.ts                            | quotes.getRating, quotes.addRating                                                                                                                                                          | 2     |
+| modals/user-report.ts                           | users.report                                                                                                                                                                                | 1     |
+| modals/edit-profile.ts                          | users.updateProfile                                                                                                                                                                         | 1     |
+| modals/forgot-password.ts                       | users.forgotPasswordEmail                                                                                                                                                                   | 1     |
+| modals/edit-preset.ts                           | presets.add, presets.save, presets.delete                                                                                                                                                   | 3     |
+| modals/quote-report.ts                          | quotes.report                                                                                                                                                                               | 1     |
+| modals/google-sign-up.ts                        | users.create, users.delete, users.getNameAvailability                                                                                                                                       | 3     |
+| modals/simple-modals.ts                         | users.updateName, users.updateEmail, users.updatePassword, users.delete, users.reset, users.getNameAvailability, users.unlinkDiscord, users.optOutOfLeaderboards, users.deletePersonalBests | 9     |
+| modals/edit-tag.ts                              | users.createTag, users.editTag, users.deleteTag, users.deleteTagPersonalBest                                                                                                                | 4     |
+| modals/quote-search.ts                          | quotes.isSubmissionEnabled                                                                                                                                                                  | 1     |
+| utils/url-handler.ts                            | users.linkDiscord                                                                                                                                                                           | 1     |
+| utils/results.ts                                | results.add                                                                                                                                                                                 | 1     |
+| elements/account-settings/blocked-user-table.ts | connections.get, connections.delete                                                                                                                                                         | 2     |
+| elements/account-settings/ape-key-table.ts      | apeKeys.get, apeKeys.add, apeKeys.save, apeKeys.delete                                                                                                                                      | 4     |
+| elements/psa.ts                                 | psas.get                                                                                                                                                                                    | 1     |
+| elements/account/result-filters.ts              | users.addResultFilterPreset, users.removeResultFilterPreset                                                                                                                                 | 2     |
+| elements/alerts.ts                              | users.getInbox, users.updateInbox                                                                                                                                                           | 2     |
+| controllers/quotes-controller.ts                | quotes.get                                                                                                                                                                                  | 1     |
+| pages/leaderboards.ts                           | leaderboards.get, leaderboards.getDaily, leaderboards.getDailyRank, leaderboards.getWeeklyXp, leaderboards.getRank                                                                          | 5     |
+| pages/about.ts                                  | public.getSpeedHistogram, public.getTypingStats                                                                                                                                             | 2     |
+| pages/profile-search.ts                         | users.getProfile                                                                                                                                                                            | 1     |
+| pages/profile.ts                                | users.getProfile                                                                                                                                                                            | 1     |
+| pages/friends.ts                                | connections.get, connections.create, connections.update                                                                                                                                     | 3     |
+
+### Data Structures for API Responses
+
+```typescript
+// Results.add response
+interface ResultAddResponse {
+  status: 200;
+  body: {
+    message: string;
+    data: {
+      insertedId: string | null;
+      xp: number;
+      streak: number;
+      isPb: boolean;
+      dailyLeaderboardRank?: number;
+    };
+  };
+}
+
+// Users.getNameAvailability response
+interface NameAvailabilityResponse {
+  status: 200;
+  body: {
+    data: { available: boolean };
+  };
+}
+
+// Users.getProfile response
+interface UserProfileResponse {
+  status: 200;
+  body: {
+    message: string;
+    data: {
+      name: string;
+      bio: string;
+      joined: number;
+      badges: Array<{ id: string; name: string }>;
+      personalBests: Record<string, number>;
+      uid: string;
+    };
+  };
+}
+
+// Users.getInbox response
+interface InboxResponse {
+  status: 200;
+  body: {
+    message: string;
+    data: {
+      inbox: Array<{
+        id: string;
+        type: string;
+        content: string;
+        timestamp: number;
+      }>;
+      maxMail: number;
+    };
+  };
+}
+```
 
 ### Testing Commands
 
