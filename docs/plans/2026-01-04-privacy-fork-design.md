@@ -4,7 +4,7 @@
 
 | Phase                           | Status         | Progress           |
 | ------------------------------- | -------------- | ------------------ |
-| Phase 1: Core Infrastructure    | 🟡 In Progress | 2/4 tasks complete |
+| Phase 1: Core Infrastructure    | 🟢 Complete    | 4/4 tasks complete |
 | Phase 2: Test Logic Integration | ⬜ Not Started | 0/3 tasks complete |
 | Phase 3: UI Cleanup             | ⬜ Not Started | 0/3 tasks complete |
 | Phase 4: Polish & Testing       | ⬜ Not Started | 0/3 tasks complete |
@@ -956,35 +956,35 @@ describe("Privacy Fork E2E", () => {
   - [x] Personal best tracking
   - [x] Average calculation
   - [x] Error handling (quota, unavailable)
-- [ ] Create Ape API stub (Critical - 48 methods, 27 files)
-  - [ ] Implement Results API stubs (2 methods)
-    - [ ] `Ape.results.add()` - localStorage + mock response
-    - [ ] `Ape.results.updateTags()` - localStorage + mock response
-  - [ ] Implement Users API stubs (19 methods)
-    - [ ] Profile: getProfile, updateProfile, updateName, updateEmail, updatePassword
-    - [ ] Auth: create, delete, reset, forgotPasswordEmail, getNameAvailability
-    - [ ] Social: linkDiscord, unlinkDiscord, report
-    - [ ] Inbox: getInbox, updateInbox
-    - [ ] Settings: optOutOfLeaderboards, deletePersonalBests, setStreakHourOffset
-  - [ ] Implement Quotes API stubs (8 methods)
-    - [ ] Admin: get, add, approveSubmission, rejectSubmission, isSubmissionEnabled, report, getRating
-    - [ ] User: addRating (localStorage)
-  - [ ] Implement Presets API stubs (3 methods)
-    - [ ] add, save, delete (localStorage)
-  - [ ] Implement Result Filters API stubs (2 methods)
-    - [ ] addResultFilterPreset, removeResultFilterPreset (localStorage)
-  - [ ] Implement Connections API stubs (4 methods)
-    - [ ] get (blocked), delete (unblock), create (friend request), update (accept/reject)
-  - [ ] Implement Leaderboards API stubs (5 methods)
-    - [ ] get, getDaily, getDailyRank, getWeeklyXp, getRank (no-op, return empty)
-  - [ ] Implement APE Keys API stubs (4 methods)
-    - [ ] get, add, save, delete (localStorage)
-  - [ ] Implement Public API stubs (2 methods)
-    - [ ] getSpeedHistogram, getTypingStats (hide or static mock)
-  - [ ] Implement PSAs API stub (1 method)
-    - [ ] get (hide)
-  - [ ] Ensure type-safe responses for all methods
-  - [ ] Add environment-aware logging (dev only)
+- [x] Create Ape API stub (Critical - 48 methods, 27 files)
+  - [x] Implement Results API stubs (2 methods)
+    - [x] `Ape.results.add()` - localStorage + mock response
+    - [x] `Ape.results.updateTags()` - localStorage + mock response
+  - [x] Implement Users API stubs (19 methods)
+    - [x] Profile: getProfile, updateProfile, updateName, updateEmail, updatePassword
+    - [x] Auth: create, delete, reset, forgotPasswordEmail, getNameAvailability
+    - [x] Social: linkDiscord, unlinkDiscord, report
+    - [x] Inbox: getInbox, updateInbox
+    - [x] Settings: optOutOfLeaderboards, deletePersonalBests, setStreakHourOffset
+  - [x] Implement Quotes API stubs (8 methods)
+    - [x] Admin: get, add, approveSubmission, rejectSubmission, isSubmissionEnabled, report, getRating
+    - [x] User: addRating (localStorage)
+  - [x] Implement Presets API stubs (3 methods)
+    - [x] add, save, delete (localStorage)
+  - [x] Implement Result Filters API stubs (2 methods)
+    - [x] addResultFilterPreset, removeResultFilterPreset (localStorage)
+  - [x] Implement Connections API stubs (4 methods)
+    - [x] get (blocked), delete (unblock), create (friend request), update (accept/reject)
+  - [x] Implement Leaderboards API stubs (5 methods)
+    - [x] get, getDaily, getDailyRank, getWeeklyXp, getRank (no-op, return empty)
+  - [x] Implement APE Keys API stubs (4 methods)
+    - [x] get, add, save, delete (localStorage)
+  - [x] Implement Public API stubs (2 methods)
+    - [x] getSpeedHistogram, getTypingStats (hide or static mock)
+  - [x] Implement PSAs API stub (1 method)
+    - [x] get (hide)
+  - [x] Ensure type-safe responses for all methods
+  - [x] Add environment-aware logging (dev only)
 - [x] Create Firebase stub
   - [x] Update `isAuthenticated()` to return `false`
   - [x] Update `getAuthenticatedUser()` to return `null`
@@ -993,7 +993,7 @@ describe("Privacy Fork E2E", () => {
 - [x] Update DB stub
   - [x] Implement `getUserAverage10()`
   - [x] Implement `getLocalPB()`
-  - [ ] Update stub for remaining calls (remove duplicates)
+  - [x] Update stub for remaining calls (remove duplicates)
 
 ### Phase 2: Test Logic Integration
 
