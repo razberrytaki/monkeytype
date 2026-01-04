@@ -844,6 +844,9 @@ function fillUser(): void {
 }
 
 function updateContent(): void {
+  qs(".pageLeaderboards")?.addClass("hidden");
+  return;
+
   qsa(".page.pageLeaderboards .loading").hide();
   qsa(".page.pageLeaderboards .updating").addClass("invisible");
   qs(".page.pageLeaderboards .error")?.hide();
@@ -1525,8 +1528,3 @@ ConfigEvent.subscribe(({ key }) => {
     fillUser();
   }
 });
-
-export async function update(): Promise<void> {
-  qs(".pageLeaderboards")?.addClass("hidden");
-  return;
-}
