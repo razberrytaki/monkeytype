@@ -163,5 +163,127 @@ export const Ape = {
       logApiCall("users.setStreakHourOffset");
       return createSuccessResponse({ success: true });
     },
+
+    addQuoteToFavorites: async (params: { body: { quoteId: string } }) => {
+      logApiCall("users.addQuoteToFavorites");
+      const favorites = JSON.parse(
+        localStorage.getItem("mt_favorites") ?? "[]",
+      ) as string[];
+      if (!favorites.includes(params.body.quoteId)) {
+        favorites.push(params.body.quoteId);
+        localStorage.setItem("mt_favorites", JSON.stringify(favorites));
+      }
+      return createSuccessResponse({ success: true });
+    },
+
+    removeQuoteFromFavorites: async (params: { body: { quoteId: string } }) => {
+      logApiCall("users.removeQuoteFromFavorites");
+      const favorites = JSON.parse(
+        localStorage.getItem("mt_favorites") ?? "[]",
+      ) as string[];
+      const filtered = favorites.filter(
+        (id: string) => id !== params.body.quoteId,
+      );
+      localStorage.setItem("mt_favorites", JSON.stringify(filtered));
+      return createSuccessResponse({ success: true });
+    },
+
+    createTag: async (params: { body: { name: string } }) => {
+      logApiCall("users.createTag");
+      const tags = storageManager.getTags() ?? {};
+      if (tags[params.body.name]) {
+        return createErrorResponse(400, "Tag already exists");
+      }
+      tags[params.body.name] = { name: params.body.name, stats: {} };
+      storageManager.setTags(tags);
+      return createSuccessResponse({ success: true });
+    },
+
+    editTag: async (params: {
+      params: { tag: string };
+      body: { newName: string };
+    }) => {
+      logApiCall("users.editTag");
+      const tags = storageManager.getTags() ?? {};
+      const oldTag = tags[params.params.tag];
+      if (!oldTag) {
+        return createErrorResponse(404, "Tag not found");
+      }
+      const { [params.params.tag]: _removed, ...rest } = tags;
+      rest[params.body.newName] = {
+        name: params.body.newName,
+        stats: oldTag.stats ?? {},
+      };
+      storageManager.setTags(rest);
+      return createSuccessResponse({ success: true });
+    },
+
+    deleteTag: async (params: { params: { tag: string } }) => {
+      logApiCall("users.deleteTag");
+      const tags = storageManager.getTags() ?? {};
+      const { [params.params.tag]: _removed, ...rest } = tags;
+      storageManager.setTags(rest);
+      return createSuccessResponse({ success: true });
+    },
+
+    deleteTagPersonalBest: async (params: { params: { tag: string } }) => {
+      logApiCall("users.deleteTagPersonalBest");
+      const tags = storageManager.getTags() ?? {};
+      const tag = tags[params.params.tag];
+      if (tag) {
+        tag.stats = {};
+        storageManager.setTags(tags);
+      }
+      return createSuccessResponse({ success: true });
+    },
+  },
+
+  quotes: {
+    get: async () => {
+      logApiCall("quotes.get");
+      return createSuccessResponse([]);
+    },
+
+    add: async () => {
+      logApiCall("quotes.add");
+      return createSuccessResponse({ success: true });
+    },
+
+    approveSubmission: async () => {
+      logApiCall("quotes.approveSubmission");
+      return createSuccessResponse({ success: true });
+    },
+
+    rejectSubmission: async () => {
+      logApiCall("quotes.rejectSubmission");
+      return createSuccessResponse({ success: true });
+    },
+
+    isSubmissionEnabled: async () => {
+      logApiCall("quotes.isSubmissionEnabled");
+      return createSuccessResponse({ enabled: false });
+    },
+
+    report: async () => {
+      logApiCall("quotes.report");
+      return createSuccessResponse({ success: true });
+    },
+
+    getRating: async () => {
+      logApiCall("quotes.getRating");
+      return createSuccessResponse({ rating: 0, count: 0 });
+    },
+
+    addRating: async (params: {
+      body: { quoteId: string; rating: number };
+    }) => {
+      logApiCall("quotes.addRating");
+      const ratings = JSON.parse(
+        localStorage.getItem("mt_quote_ratings") ?? "{}",
+      ) as Record<string, number>;
+      ratings[params.body.quoteId] = params.body.rating;
+      localStorage.setItem("mt_quote_ratings", JSON.stringify(ratings));
+      return createSuccessResponse({ success: true });
+    },
   },
 };
