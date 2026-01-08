@@ -92,7 +92,7 @@ export function initYearSelector(
   for (let year = currentYear; year >= startYear; year--) {
     if (
       years.length < 2 ||
-      (ServerConfiguration.get()?.users.premium.enabled &&
+      (ServerConfiguration.get()?.users?.premium?.enabled &&
         DB.getSnapshot()?.isPremium)
     ) {
       years.push({
@@ -138,7 +138,9 @@ function getYearSelector(element: HTMLElement): SlimSelect {
         yearSelector?.disable();
         const selected = newVal[0]?.value as string;
         const activity = await getTestActivityCalendar(selected);
-        update(element, activity);
+        if (activity !== null) {
+          update(element, activity);
+        }
         // oxlint-disable-next-line no-unsafe-call
         if ((yearSelector?.getData() ?? []).length > 1) {
           // oxlint-disable-next-line no-unsafe-call

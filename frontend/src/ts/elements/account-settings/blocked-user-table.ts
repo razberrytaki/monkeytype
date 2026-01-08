@@ -19,7 +19,7 @@ async function getData(): Promise<boolean> {
   }
 
   const response = await Ape.connections.get({
-    query: { status: "blocked", type: "incoming" },
+    params: { type: "incoming" },
   });
 
   if (response.status !== 200) {
@@ -82,7 +82,9 @@ element.on("click", "table button.delete", async (e) => {
 
   row.querySelectorAll("button").forEach((button) => (button.disabled = true));
 
-  const response = await Ape.connections.delete({ params: { id } });
+  const response = await Ape.connections.delete({
+    params: { connectionId: id },
+  });
   if (response.status !== 200) {
     Notifications.add(`Cannot unblock user: ${response.body.message}`, -1);
   } else {
@@ -90,6 +92,7 @@ element.on("click", "table button.delete", async (e) => {
     refreshList();
 
     const snapshot = DB.getSnapshot();
+    // oxlint-disable-next-line strict-boolean-expressions
     if (snapshot) {
       const uid = row.dataset["uid"];
       if (uid === undefined) {
@@ -98,7 +101,7 @@ element.on("click", "table button.delete", async (e) => {
 
       // oxlint-disable-next-line no-dynamic-delete, no-unsafe-member-access
       delete snapshot.connections[uid];
-      updateFriendRequestsIndicator();
+      updateFriendRequestsIndicator(0);
     }
   }
 });

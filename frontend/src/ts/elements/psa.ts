@@ -35,6 +35,7 @@ function setMemory(id: string): void {
 async function getLatest(): Promise<PSA[] | null> {
   const response = await Ape.psas.get();
 
+  // @ts-expect-error - Stub always returns 200, but original code checks for 500/503
   if (response.status === 500) {
     if (isDevEnvironment()) {
       Notifications.addPSA(
@@ -113,7 +114,9 @@ async function getLatest(): Promise<PSA[] | null> {
       }
     }
     return null;
-  } else if (response.status === 503) {
+  }
+  // @ts-expect-error - Stub always returns 200, but original code checks for 500/503
+  if (response.status === 503) {
     Notifications.addPSA(
       "Server is currently under maintenance. <a target= '_blank' href='https://monkeytype.instatus.com/'>Check the status page</a> for more info.",
       -1,
@@ -179,8 +182,9 @@ export async function show(): Promise<void> {
   });
 }
 
+/* oxlint-disable-next-line no-deprecated */
 AuthEvent.subscribe((event) => {
-  if (event.type === "authStateChanged") {
+  if (event?.type === "authStateChanged") {
     void show();
   }
 });

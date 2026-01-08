@@ -149,7 +149,7 @@ const generateApeKey = new SimpleModal({
         animationMode: "modalOnly",
       },
       afterHide: (): void => {
-        viewApeKey.show([data.apeKey], {
+        viewApeKey.show([data.apeKey.key], {
           modalChain,
           animationMode: "modalOnly",
         });

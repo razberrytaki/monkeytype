@@ -171,6 +171,7 @@ export async function setFilterPreset(id: string): Promise<void> {
 
 function addFilterPresetToSnapshot(filter: ResultFilters): void {
   const snapshot = DB.getSnapshot();
+  // oxlint-disable-next-line strict-boolean-expressions
   if (!snapshot) return;
   DB.setSnapshot({
     ...snapshot,
@@ -185,7 +186,7 @@ export async function createFilterPreset(
   name = name.replace(/ /g, "_");
   Loader.show();
   const result = await Ape.users.addResultFilterPreset({
-    body: { ...filters, name },
+    body: { filter: { ...filters }, name },
   });
   Loader.hide();
   if (result.status === 200) {
@@ -200,6 +201,7 @@ export async function createFilterPreset(
 
 function removeFilterPresetFromSnapshot(id: string): void {
   const snapshot = DB.getSnapshot();
+  // oxlint-disable-next-line strict-boolean-expressions
   if (!snapshot) return;
   const filterPresets = [...snapshot.filterPresets];
   const toDeleteIx = filterPresets.findIndex((filter) => filter._id === id);
@@ -275,7 +277,7 @@ function setAllFilters(group: ResultFiltersGroup, value: boolean): void {
 export function loadTags(): void {
   const snapshot = DB.getSnapshot();
 
-  if (snapshot === undefined) return;
+  if (snapshot === undefined || snapshot === null) return;
 
   snapshot.tags.forEach((tag) => {
     defaultResultFilters.tags[tag._id] = true;
@@ -429,7 +431,7 @@ export function updateActive(): void {
           ?.map((id) => {
             if (id === "none") return id;
             const snapshot = DB.getSnapshot();
-            if (snapshot === undefined) return id;
+            if (snapshot === undefined || snapshot === null) return id;
             const name = snapshot.tags?.find((t) => t._id === id);
             if (name !== undefined) {
               return snapshot.tags?.find((t) => t._id === id)?.display;
@@ -750,7 +752,7 @@ let selectChangeCallbackFn: () => void = () => {
 export function updateTagsDropdownOptions(): void {
   const snapshot = DB.getSnapshot();
 
-  if (snapshot === undefined) {
+  if (snapshot === undefined || snapshot === null) {
     return;
   }
 
@@ -784,7 +786,7 @@ export function updateTagsDropdownOptions(): void {
   html += "<option value='all'>all</option>";
   html += "<option value='none'>no tag</option>";
 
-  for (const tag of snapshot.tags) {
+  for (const tag of snapshot.tags ?? []) {
     html += `<option value="${tag._id}" filter="${tag.name}">${tag.display}</option>`;
   }
 
@@ -938,9 +940,13 @@ function verifyResultFiltersStructure(filterIn: ResultFilters): ResultFilters {
   return filter;
 }
 
+// oxlint-disable-next-line no-deprecated
 AuthEvent.subscribe((event) => {
-  if (event.type === "snapshotUpdated" && event.data.isInitial) {
-    loadTags();
-    void load();
+  if (event?.type === "snapshotUpdated") {
+    const data = event.data as { isInitial?: boolean };
+    if (data.isInitial) {
+      loadTags();
+      void load();
+    }
   }
 });

@@ -5,14 +5,14 @@
 .leaderboard-link,
 .challenge-link,
 .discord-link {
-  @extend %hidden;
+  display: none !important;
 }
 
 /* Hide guest-only features in privacy mode */
 .xp-bar,
 .streak-display,
 .daily-leaderboard {
-  @extend %hidden;
+  display: none !important;
 }
 
 /* Hide account/leaderboard pages */
@@ -21,5 +21,5 @@
 .pageLeaderboards,
 .pageFriends,
 .pageChallenge {
-  @extend %hidden;
+  display: none !important;
 }

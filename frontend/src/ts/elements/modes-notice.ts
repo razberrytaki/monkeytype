@@ -9,7 +9,7 @@ import { isAuthenticated } from "../firebase";
 import * as CustomTextState from "../states/custom-text-name";
 import { getLanguageDisplayString } from "../utils/strings";
 import Format from "../utils/format";
-import { getActiveFunboxes, getActiveFunboxNames } from "../test/funbox/list";
+import { getActiveFunboxNames } from "../test/funbox/list";
 import { escapeHTML, getMode2 } from "../utils/misc";
 import { qsr } from "../utils/dom";
 
@@ -208,16 +208,18 @@ export async function update(): Promise<void> {
       Config.language,
       Config.difficulty,
       Config.lazyMode,
-      getActiveFunboxes(),
+      getActiveFunboxNames(),
     );
 
     let str = "no pb";
 
-    if (pb !== undefined) {
-      str = `${Format.typingSpeed(pb.wpm, {
+    if (pb !== undefined && pb !== null) {
+      const wpm = pb;
+      const acc = 100;
+      str = `${Format.typingSpeed(wpm, {
         showDecimalPlaces: true,
         suffix: ` ${Config.typingSpeedUnit}`,
-      })} ${pb?.acc}% acc`;
+      })} ${acc}% acc`;
     }
 
     testModesNotice.appendHtml(

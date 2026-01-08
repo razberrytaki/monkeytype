@@ -43,3 +43,7 @@ export function update(): void {
   // No authentication in privacy fork
   return;
 }
+
+export function updateFriendRequestsIndicator(_count: number): void {
+  // No-op - no friend requests in privacy fork
+}

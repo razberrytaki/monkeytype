@@ -10,17 +10,18 @@ let averageAcc = 0;
 export async function update(): Promise<void> {
   const mode2 = Misc.getMode2(Config, TestWords.currentQuote);
 
-  const [wpm, acc] = (
-    await DB.getUserAverage10(
-      Config.mode,
-      mode2 as never,
-      Config.punctuation,
-      Config.numbers,
-      Config.language,
-      Config.difficulty,
-      Config.lazyMode,
-    )
-  ).map(Numbers.roundTo2) as [number, number];
+  const avg = await DB.getUserAverage10(
+    Config.mode,
+    mode2 as never,
+    Config.punctuation,
+    Config.numbers,
+    Config.language,
+    Config.difficulty,
+    Config.lazyMode,
+  );
+  if (!avg) return;
+
+  const [wpm, acc] = avg.map(Numbers.roundTo2) as [number, number];
 
   averageWPM = Config.alwaysShowDecimalPlaces ? wpm : Math.round(wpm);
   averageAcc = Config.alwaysShowDecimalPlaces ? acc : Math.floor(acc);

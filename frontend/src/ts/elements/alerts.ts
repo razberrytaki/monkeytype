@@ -94,7 +94,7 @@ function hide(): void {
           const badge = BadgeController.getById(r.item.id);
           if (badge) {
             badgesClaimed.push(badge.name);
-            DB.addBadge(r.item);
+            DB.addBadge(r.item.id);
           }
         }
       }
@@ -157,7 +157,10 @@ async function show(): Promise<void> {
 }
 
 async function getAccountAlerts(): Promise<void> {
-  if (!ConnectionState.get()) {
+  if (
+    /* oxlint-disable-next-line no-deprecated */
+    !ConnectionState.get()
+  ) {
     accountAlertsListEl.setHtml(`
     <div class="nothing">
     You are offline
@@ -168,17 +171,10 @@ async function getAccountAlerts(): Promise<void> {
 
   const inboxResponse = await Ape.users.getInbox();
 
-  if (inboxResponse.status === 503) {
+  if (inboxResponse.status !== 200) {
     accountAlertsListEl.setHtml(`
     <div class="nothing">
-    Account inboxes are temporarily unavailable
-    </div>
-    `);
-    return;
-  } else if (inboxResponse.status !== 200) {
-    accountAlertsListEl.setHtml(`
-    <div class="nothing">
-    Error getting inbox: ${inboxResponse.body.message} Please try again later
+     Account inboxes are temporarily unavailable
     </div>
     `);
     return;
@@ -498,17 +494,24 @@ NotificationEvent.subscribe((message, level, options) => {
   }
 });
 
+/* oxlint-disable-next-line no-deprecated */
 AuthEvent.subscribe((event) => {
-  if (event.type === "snapshotUpdated" && event.data.isInitial) {
-    const snapshot = DB.getSnapshot();
-    setNotificationBubbleVisible((snapshot?.inboxUnreadSize ?? 0) > 0);
+  if (event?.type === "snapshotUpdated") {
+    const data = event.data as { isInitial?: boolean };
+    if (data.isInitial) {
+      const snapshot = DB.getSnapshot();
+      setNotificationBubbleVisible((snapshot?.inboxUnreadSize ?? 0) > 0);
+    }
   }
-  if (event.type === "authStateChanged" && !event.data.isUserSignedIn) {
-    setNotificationBubbleVisible(false);
-    accountAlerts = [];
-    mailToMarkRead = [];
-    mailToDelete = [];
-    accountAlertsListEl.empty();
+  if (event?.type === "authStateChanged") {
+    const data = event.data as { isUserSignedIn?: boolean };
+    if (!data.isUserSignedIn) {
+      setNotificationBubbleVisible(false);
+      accountAlerts = [];
+      mailToMarkRead = [];
+      mailToDelete = [];
+      accountAlertsListEl.empty();
+    }
   }
 });
 

@@ -29,14 +29,16 @@ export async function update(): Promise<void> {
   const percentageDownloaded = Math.round(
     (results.length / completedTests) * 100,
   );
-  const limits = ServerConfiguration.get()?.results.limits ?? {
+  const limits = ServerConfiguration.get()?.results?.limits ?? {
     regularUser: 0,
     premiumUser: 0,
   };
   const currentLimit = DB.getSnapshot()?.isPremium
     ? limits.premiumUser
     : limits.regularUser;
-  const percentageLimit = Math.round((results?.length / currentLimit) * 100);
+  const percentageLimit = Math.round(
+    (results?.length / (currentLimit ?? 1)) * 100,
+  );
 
   const barsWrapper = $(".pageAccount .resultBatches .bars");
 
@@ -78,7 +80,7 @@ export async function update(): Promise<void> {
     updateButtonText("all results loaded");
   }
 
-  if (results.length >= currentLimit) {
+  if (results.length >= (currentLimit ?? Infinity)) {
     disableButton();
     updateButtonText("limit reached");
 
@@ -111,7 +113,8 @@ export function showOrHideIfNeeded(): void {
   }
 
   const completed = DB.getSnapshot()?.typingStats?.completedTests ?? 0;
-  const batchSize = ServerConfiguration.get()?.results.maxBatchSize ?? 0;
+  const batchSize =
+    ServerConfiguration.get()?.results?.limits?.maxBatchSize ?? 0;
 
   //no matter if premium or not, if the user is below the initial batch, hide the element
   if (completed <= batchSize) {

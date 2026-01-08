@@ -72,11 +72,12 @@ export async function update(
   }
 
   details.find(".name").text(profile.name);
-  details
-    .find(".userFlags")
-    .html(
-      getHtmlByUserFlags({ ...profile, isFriend: DB.isFriend(profile.uid) }),
-    );
+  details.find(".userFlags").html(
+    getHtmlByUserFlags({
+      ...profile,
+      isFriend: DB.isFriend((profile as { uid?: string }).uid ?? ""),
+    }),
+  );
 
   if (profile.lbOptOut === true) {
     if (where === "profile") {
@@ -317,7 +318,13 @@ export async function update(
     }
   }
 
-  if (profile.uid === getAuthenticatedUser()?.uid) {
+  const profileUid = (profile as { uid?: string }).uid;
+  const authedUid = getAuthenticatedUser()?.uid;
+  if (
+    profileUid !== undefined &&
+    profileUid !== "" &&
+    profileUid === authedUid
+  ) {
     profileElement.find(".userReportButton").addClass("hidden");
   } else {
     profileElement.find(".userReportButton").removeClass("hidden");
@@ -445,7 +452,8 @@ export function updateFriendRequestButton(): void {
 
   const myProfile = myUid === profileUid;
   const hasRequest = DB.getSnapshot()?.connections[profileUid] !== undefined;
-  const featureEnabled = getServerConfiguration()?.connections.enabled;
+  const featureEnabled =
+    getServerConfiguration()?.connections?.enabled ?? false;
 
   if (!featureEnabled || myUid === undefined || myProfile) {
     button?.classList.add("hidden");
