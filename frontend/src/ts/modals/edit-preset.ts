@@ -35,7 +35,10 @@ const state = {
 let presetNameEl: ValidatedHtmlInputElement | null = null;
 
 export function show(action: string, id?: string, name?: string): void {
-  if (!ConnectionState.get()) {
+  if (
+    /* oxlint-disable-next-line no-deprecated */
+    !ConnectionState.get()
+  ) {
     Notifications.add("You are offline", 0, {
       duration: 2,
     });
@@ -299,7 +302,7 @@ async function apply(): Promise<void> {
           settingGroups: activeSettingGroups,
         }),
         display: propPresetName,
-        _id: response.body.data.presetId,
+        _id: presetName,
       } as SnapshotPreset);
     }
   } else if (action === "edit") {
@@ -311,16 +314,10 @@ async function apply(): Promise<void> {
       return;
     }
     const configChanges = getConfigChanges();
-    const activeSettingGroups: ConfigGroupName[] | null =
-      state.presetType === "partial" ? getActiveSettingGroupsFromState() : null;
     const response = await Ape.presets.save({
       body: {
-        _id: presetId,
         name: presetName,
-        ...(updateConfig && {
-          config: configChanges,
-          settingGroups: activeSettingGroups,
-        }),
+        config: updateConfig ? configChanges : preset.config,
       },
     });
 
@@ -341,7 +338,7 @@ async function apply(): Promise<void> {
       }
     }
   } else if (action === "remove") {
-    const response = await Ape.presets.delete({ params: { presetId } });
+    const response = await Ape.presets.delete({ body: { name: presetId } });
 
     if (response.status !== 200) {
       Notifications.add("Failed to remove preset", -1, { response });

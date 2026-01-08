@@ -113,10 +113,14 @@ function hide(): void {
   void modal.hide();
 }
 
+/* oxlint-disable-next-line no-deprecated */
 AuthEvent.subscribe((event) => {
-  if (event.type === "snapshotUpdated" && event.data.isInitial) {
-    if (TestLogic.notSignedInLastResult !== null) {
-      show();
+  if (event?.type === "snapshotUpdated") {
+    const data = event.data as { isInitial?: boolean };
+    if (data.isInitial) {
+      if (TestLogic.notSignedInLastResult !== null) {
+        show();
+      }
     }
   }
 });

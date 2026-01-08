@@ -22,6 +22,7 @@ function getMemory(): string {
 }
 
 async function check(): Promise<void> {
+  console.log("check(): fetching latest version from GitHub");
   const { data: currentVersion, error } = await tryCatch(
     getLatestReleaseFromGitHub(),
   );
@@ -32,6 +33,8 @@ async function check(): Promise<void> {
       "Failed to fetch version number from GitHub",
     );
     console.error(msg);
+    version = "unknown";
+    isVersionNew = false;
     return;
   }
 
@@ -45,6 +48,7 @@ async function check(): Promise<void> {
     setMemory(currentVersion);
     purgeCaches();
   }
+  console.log("check(): version check complete", { version, isVersionNew });
 }
 
 function purgeCaches(): void {

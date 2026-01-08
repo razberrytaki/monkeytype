@@ -24,6 +24,7 @@ $(accountPage).on("click", ".editProfileButton", () => {
     return;
   }
   const snapshot = getSnapshot();
+  // oxlint-disable-next-line strict-boolean-expressions
   if (!snapshot) {
     Notifications.add(
       "Failed to open edit profile modal: No user snapshot found",

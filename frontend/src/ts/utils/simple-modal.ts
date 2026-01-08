@@ -407,6 +407,7 @@ export class SimpleModal {
   }
 
   show(parameters: string[] = [], showOptions: ShowOptions): void {
+    // oxlint-disable-next-line no-deprecated,strict-boolean-expressions
     if (this.onlineOnly && !ConnectionState.get()) {
       Notifications.add("You are offline", 0, { duration: 2 });
       return;

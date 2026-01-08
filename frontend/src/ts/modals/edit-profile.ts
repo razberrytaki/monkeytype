@@ -18,7 +18,10 @@ import { InputIndicator } from "../elements/input-indicator";
 import { ElementWithUtils, qsr } from "../utils/dom";
 
 export function show(): void {
-  if (!ConnectionState.get()) {
+  if (
+    /* oxlint-disable-next-line no-deprecated */
+    !ConnectionState.get()
+  ) {
     Notifications.add("You are offline", 0, {
       duration: 2,
     });
@@ -184,7 +187,9 @@ async function updateProfile(): Promise<void> {
     return;
   }
 
-  snapshot.details = response.body.data ?? updates;
+  if (response.body.data !== null && response.body.data !== undefined) {
+    snapshot.details = response.body.data;
+  }
   snapshot.inventory?.badges.forEach((badge) => {
     if (badge.id === currentSelectedBadgeId) {
       badge.selected = true;

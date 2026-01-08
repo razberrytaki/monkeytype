@@ -64,11 +64,9 @@ async function setup(modalEl: ElementWithUtils): Promise<void> {
       return;
     }
     Loader.show();
-    void signIn(envConfig.quickLoginEmail, envConfig.quickLoginPassword).then(
-      () => {
-        Loader.hide();
-      },
-    );
+    void signIn().then(() => {
+      Loader.hide();
+    });
     void modal.hide();
   });
   modalEl.qs(".xpBarTest")?.on("click", () => {

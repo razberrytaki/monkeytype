@@ -154,7 +154,7 @@ async function approveQuote(index: number, dbid: string): Promise<void> {
 
   Loader.show();
   const response = await Ape.quotes.approveSubmission({
-    body: { quoteId: dbid },
+    params: { quoteId: dbid },
   });
   Loader.hide();
 
@@ -178,7 +178,7 @@ async function refuseQuote(index: number, dbid: string): Promise<void> {
 
   Loader.show();
   const response = await Ape.quotes.rejectSubmission({
-    body: { quoteId: dbid },
+    params: { quoteId: dbid },
   });
   Loader.hide();
 
@@ -208,7 +208,7 @@ async function editQuote(index: number, dbid: string): Promise<void> {
 
   Loader.show();
   const response = await Ape.quotes.approveSubmission({
-    body: {
+    params: {
       quoteId: dbid,
       editText,
       editSource,

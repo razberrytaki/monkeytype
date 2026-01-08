@@ -2,8 +2,7 @@ import { Ape } from "../ape";
 import * as DB from "../db";
 import * as Loader from "../elements/loader";
 import * as Notifications from "../elements/notifications";
-import * as AccountPage from "../pages/account";
-import * as ConnectionState from "../states/connection";
+import AccountPage from "../pages/account";
 import { areUnsortedArraysEqual } from "../utils/arrays";
 import * as TestResult from "../test/result";
 import AnimatedModal from "../utils/animated-modal";
@@ -27,12 +26,6 @@ export function show(
   tags: string[],
   source: "accountPage" | "resultPage",
 ): void {
-  if (!ConnectionState.get()) {
-    Notifications.add("You are offline", 0, {
-      duration: 2,
-    });
-    return;
-  }
   if (resultId === "") {
     Notifications.add(
       "Failed to show edit result tags modal: result id is empty",
@@ -111,7 +104,7 @@ function toggleTag(tagId: string): void {
 async function save(): Promise<void> {
   Loader.show();
   const response = await Ape.results.updateTags({
-    body: { resultId: state.resultId, tagIds: state.tags },
+    body: { tags: state.tags },
   });
   Loader.hide();
 
@@ -125,7 +118,7 @@ async function save(): Promise<void> {
     return;
   }
 
-  //can do this because the response will not be null if the status is 200
+  //can do this because response will not be null if status is 200
   const responseTagPbs = response.body.data?.tagPbs ?? [];
 
   Notifications.add("Tags updated", 1, {
@@ -141,7 +134,10 @@ async function save(): Promise<void> {
   if (state.source === "accountPage") {
     AccountPage.updateTagsForResult(state.resultId, state.tags);
   } else if (state.source === "resultPage") {
-    TestResult.updateTagsAfterEdit(state.tags, responseTagPbs);
+    TestResult.updateTagsAfterEdit(
+      state.tags,
+      responseTagPbs.map((t) => t.tag),
+    );
   }
 }
 

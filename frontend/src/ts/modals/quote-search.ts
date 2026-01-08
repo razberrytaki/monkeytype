@@ -522,7 +522,7 @@ async function setup(modalEl: ElementWithUtils): Promise<void> {
     const getSubmissionEnabled = await Ape.quotes.isSubmissionEnabled();
     const isSubmissionEnabled =
       (getSubmissionEnabled.status === 200 &&
-        getSubmissionEnabled.body.data?.isEnabled) ??
+        getSubmissionEnabled.body.data?.enabled) ??
       false;
     Loader.hide();
     if (!isSubmissionEnabled) {

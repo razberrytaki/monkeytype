@@ -4,11 +4,11 @@ import * as Notifications from "../elements/notifications";
 import * as Loader from "../elements/loader";
 // import * as Settings from "../pages/settings";
 import * as ConnectionState from "../states/connection";
-import { getSnapshot, setSnapshot } from "../db";
+import { getSnapshot, setSnapshot, Snapshot } from "../db";
 import AnimatedModal from "../utils/animated-modal";
-import { Snapshot } from "../constants/default-snapshot";
 
 export function show(): void {
+  // oxlint-disable-next-line no-deprecated,strict-boolean-expressions
   if (!ConnectionState.get()) {
     Notifications.add("You are offline", 0, {
       duration: 2,
@@ -84,15 +84,13 @@ async function apply(): Promise<void> {
 
   Loader.show();
 
-  const response = await Ape.users.setStreakHourOffset({
-    body: { hourOffset: value },
-  });
+  const response = await Ape.users.setStreakHourOffset();
   Loader.hide();
   if (response.status !== 200) {
     Notifications.add("Failed to set streak hour offset", -1, { response });
   } else {
     Notifications.add("Streak hour offset set", 1);
-    const snap = getSnapshot() as Snapshot;
+    const snap = getSnapshot() as Partial<Snapshot>;
     snap.streakHourOffset = value;
     setSnapshot(snap);
     hide();

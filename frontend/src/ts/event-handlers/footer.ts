@@ -8,7 +8,6 @@ import * as ContactModal from "../modals/contact";
 import * as VersionHistoryModal from "../modals/version-history";
 import { envConfig } from "virtual:env-config";
 import { COMPATIBILITY_CHECK } from "@monkeytype/contracts";
-import { lastSeenServerCompatibility } from "../ape/adapters/ts-rest-adapter";
 
 document
   .querySelector("footer #commandLineMobileButton")
@@ -35,7 +34,7 @@ document
           {
             clientVersion: envConfig.clientVersion,
             clientCompatibility: COMPATIBILITY_CHECK,
-            lastSeenServerCompatibility,
+            lastSeenServerCompatibility: "unknown",
           },
           null,
           2,

@@ -67,7 +67,7 @@ async function hide(): Promise<void> {
             //user might be deleted already by the server
           });
         }
-        AccountController.signOut();
+        void AccountController.signOut();
         signedInUser = undefined;
       }
     },
@@ -126,7 +126,7 @@ async function apply(): Promise<void> {
         //user might be deleted already by the server
       });
     }
-    AccountController.signOut();
+    void AccountController.signOut();
     signedInUser = undefined;
     void hide();
     Loader.hide();
@@ -154,10 +154,9 @@ function disableInput(): void {
 
 new ValidatedHtmlInputElement(nameInputEl, {
   schema: UserNameSchema,
-  isValid: remoteValidation(
-    async (name) => Ape.users.getNameAvailability({ params: { name } }),
-    { check: (data) => data.available || "Name not available" },
-  ),
+  isValid: remoteValidation(async (_name) => Ape.users.getNameAvailability(), {
+    check: (data) => data.available || "Name not available",
+  }),
   debounceDelay: 1000,
   callback: (result) => {
     if (result.status === "success") {
@@ -175,9 +174,10 @@ async function setup(modalEl: ElementWithUtils): Promise<void> {
   });
 }
 
+/* oxlint-disable-next-line no-deprecated */
 subscribeToSignUpEvent((signedInUser, isNewUser) => {
-  if (signedInUser !== undefined && isNewUser) {
-    show(signedInUser);
+  if (signedInUser !== undefined && isNewUser && signedInUser !== null) {
+    show(signedInUser as UserCredential);
   }
 });
 

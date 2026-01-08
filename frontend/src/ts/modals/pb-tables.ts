@@ -18,6 +18,7 @@ function update(mode: Mode): void {
   modalEl.qs("table thead tr td span.unit")?.setText(Config.typingSpeedUnit);
 
   const snapshot = DB.getSnapshot();
+  /* oxlint-disable-next-line strict-boolean-expressions */
   if (!snapshot) return;
 
   const allmode2 = snapshot.personalBests?.[mode] as

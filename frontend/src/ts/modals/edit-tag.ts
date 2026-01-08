@@ -3,7 +3,7 @@ import * as DB from "../db";
 import { IsValidResponse } from "../elements/input-validation";
 import * as Settings from "../pages/settings";
 import AnimatedModal, { ShowOptions } from "../utils/animated-modal";
-import { SimpleModal, TextInput } from "../utils/simple-modal";
+import { SimpleModal, TextInput, ExecReturn } from "../utils/simple-modal";
 import { TagNameSchema } from "@monkeytype/schemas/users";
 
 const cleanTagName = (tagName: string): string => tagName.replaceAll(" ", "_");
@@ -27,9 +27,10 @@ const actionModals: Record<Action, SimpleModal> = {
     ],
     onlineOnly: true,
     buttonText: "add",
-    execFn: async (_thisPopup, propTagName) => {
+    execFn: async (_thisPopup, ...params): Promise<ExecReturn> => {
+      const propTagName = params[0] ?? "";
       const tagName = cleanTagName(propTagName);
-      const response = await Ape.users.createTag({ body: { tagName } });
+      const response = await Ape.users.createTag({ body: { name: tagName } });
 
       if (response.status !== 200) {
         return {
@@ -38,13 +39,13 @@ const actionModals: Record<Action, SimpleModal> = {
             "Failed to add tag: " +
             response.body.message.replace(tagName, propTagName),
           notificationOptions: { response },
-        };
+        } as ExecReturn;
       }
 
       DB.getSnapshot()?.tags?.push({
         display: propTagName,
-        name: response.body.data.name,
-        _id: response.body.data._id,
+        name: response.body.data?.name ?? tagName,
+        _id: response.body.data?.name ?? tagName,
         personalBests: {
           time: {},
           words: {},
@@ -73,12 +74,14 @@ const actionModals: Record<Action, SimpleModal> = {
     beforeInitFn: (_thisPopup) => {
       (_thisPopup.inputs[0] as TextInput).initVal = _thisPopup.parameters[0];
     },
-    execFn: async (_thisPopup, propTagName) => {
+    execFn: async (_thisPopup, ...params): Promise<ExecReturn> => {
+      const propTagName = params[0] ?? "";
       const tagName = cleanTagName(propTagName);
       const tagId = _thisPopup.parameters[1] as string;
 
       const response = await Ape.users.editTag({
-        body: { tagId, newName: tagName },
+        params: { tag: tagId },
+        body: { newName: tagName },
       });
 
       if (response.status !== 200) {
@@ -86,7 +89,7 @@ const actionModals: Record<Action, SimpleModal> = {
           status: -1,
           message: "Failed to edit tag",
           notificationOptions: { response },
-        };
+        } as ExecReturn;
       }
 
       DB.getSnapshot()?.tags?.forEach((tag) => {
@@ -110,7 +113,7 @@ const actionModals: Record<Action, SimpleModal> = {
     },
     execFn: async (_thisPopup) => {
       const tagId = _thisPopup.parameters[1] as string;
-      const response = await Ape.users.deleteTag({ params: { tagId } });
+      const response = await Ape.users.deleteTag({ params: { tag: tagId } });
 
       if (response.status !== 200) {
         return {
@@ -140,7 +143,7 @@ const actionModals: Record<Action, SimpleModal> = {
     execFn: async (_thisPopup) => {
       const tagId = _thisPopup.parameters[1] as string;
       const response = await Ape.users.deleteTagPersonalBest({
-        params: { tagId },
+        params: { tag: tagId },
       });
 
       if (response.status !== 200) {

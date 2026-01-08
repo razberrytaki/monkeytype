@@ -140,10 +140,11 @@ function isUsingGoogleAuthentication(): boolean {
 }
 
 function isUsingAuthentication(authProvider: AuthMethod): boolean {
+  const user = getAuthenticatedUser() as {
+    providerData?: { providerId: string }[];
+  } | null;
   return (
-    getAuthenticatedUser()?.providerData.some(
-      (p) => p.providerId === authProvider,
-    ) ?? false
+    user?.providerData?.some((p) => p.providerId === authProvider) ?? false
   );
 }
 
@@ -183,23 +184,31 @@ async function reauthenticate(
           message: "Failed to reauthenticate using password: password missing.",
         };
       }
+      const userEmail = (user as { email?: string }).email ?? "";
       const credential = EmailAuthProvider.credential(
-        user.email as string,
+        userEmail,
         options.password,
       );
-      await reauthenticateWithCredential(user, credential);
+      await reauthenticateWithCredential(user as User, credential);
     } else {
-      const authProvider =
-        authMethod === "github.com"
-          ? AccountController.githubProvider
-          : AccountController.gmailProvider;
-      await reauthenticateWithPopup(user, authProvider);
+      const authProvider: string =
+        authMethod === "github.com" ? "github" : "gmail";
+      if (authProvider.length === 0) {
+        return {
+          status: -1,
+          message: "No valid authentication provider found",
+        };
+      }
+      await reauthenticateWithPopup(
+        user as User,
+        (authProvider === "github" ? "github.com" : "google.com") as never,
+      );
     }
 
     return {
       status: 1,
       message: "Reauthenticated",
-      user,
+      user: user as unknown as User,
     };
   } catch (e) {
     const typedError = e as FirebaseError;
@@ -280,8 +289,7 @@ list.updateEmail = new SimpleModal({
 
     const response = await Ape.users.updateEmail({
       body: {
-        newEmail: email,
-        previousEmail: reauth.user.email as string,
+        email,
       },
     });
 
@@ -293,7 +301,7 @@ list.updateEmail = new SimpleModal({
       };
     }
 
-    AccountController.signOut();
+    void AccountController.signOut();
 
     return {
       status: 1,
@@ -482,7 +490,7 @@ list.updateName = new SimpleModal({
       validation: {
         schema: UserNameSchema,
         isValid: remoteValidation(
-          async (name) => Ape.users.getNameAvailability({ params: { name } }),
+          async (_name) => Ape.users.getNameAvailability(),
           { check: (data) => data.available || "Name not available" },
         ),
         debounceDelay: 1000,
@@ -605,7 +613,7 @@ list.updatePassword = new SimpleModal({
       };
     }
 
-    AccountController.signOut();
+    void AccountController.signOut();
 
     return {
       status: 1,
@@ -694,8 +702,7 @@ list.addPasswordAuth = new SimpleModal({
 
     const response = await Ape.users.updateEmail({
       body: {
-        newEmail: email,
-        previousEmail: reauth.user.email as string,
+        email,
       },
     });
     if (response.status !== 200) {
@@ -1154,13 +1161,7 @@ list.updateCustomTheme = new SimpleModal({
       name: name.replaceAll(" ", "_"),
       colors: newColors as CustomThemeColors,
     };
-    const validation = await DB.editCustomTheme(customTheme._id, newTheme);
-    if (!validation) {
-      return {
-        status: -1,
-        message: "Failed to update custom theme",
-      };
-    }
+    await DB.editCustomTheme(customTheme._id, newTheme);
     setConfig("customThemeColors", newColors as CustomThemeColors);
     void ThemePicker.fillCustomButtons();
 
@@ -1171,6 +1172,7 @@ list.updateCustomTheme = new SimpleModal({
   },
   beforeInitFn: (_thisPopup): void => {
     const snapshot = DB.getSnapshot();
+    /* oxlint-disable-next-line strict-boolean-expressions */
     if (!snapshot) return;
 
     const customTheme = snapshot.customThemes?.find(

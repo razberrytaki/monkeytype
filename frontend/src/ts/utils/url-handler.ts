@@ -60,6 +60,7 @@ export async function linkDiscord(hashOverride: string): Promise<void> {
     Notifications.add(response.body.message, 1);
 
     const snapshot = DB.getSnapshot();
+    // oxlint-disable-next-line strict-boolean-expressions
     if (!snapshot) return;
 
     const { discordId, discordAvatar } = response.body.data;
@@ -326,8 +327,9 @@ export function loadChallengeFromUrl(getOverride?: string): void {
     });
 }
 
+// oxlint-disable-next-line no-deprecated
 AuthEvent.subscribe((event) => {
-  if (event.type === "authStateChanged") {
+  if (event?.type === "authStateChanged") {
     const search = window.location.search;
     const hash = window.location.hash;
     loadCustomThemeFromUrl(search);

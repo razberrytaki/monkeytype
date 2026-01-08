@@ -56,7 +56,7 @@ export async function getQuoteStats(
 
   currentQuote = quote;
   const response = await Ape.quotes.getRating({
-    query: { quoteId: currentQuote.id, language: currentQuote.language },
+    params: { quoteId: quote.id.toString(), language: quote.language },
   });
   Loader.hide();
 
@@ -149,7 +149,11 @@ async function submit(): Promise<void> {
   hide(true);
 
   const response = await Ape.quotes.addRating({
-    body: { quoteId: currentQuote.id, language: currentQuote.language, rating },
+    body: {
+      quoteId: currentQuote.id.toString(),
+      language: currentQuote.language.toString(),
+      rating,
+    },
   });
   Loader.hide();
 
@@ -158,7 +162,9 @@ async function submit(): Promise<void> {
     return;
   }
 
+  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
+  /* oxlint-disable-next-line strict-boolean-expressions */
   if (!snapshot) return;
   const quoteRatings = snapshot.quoteRatings ?? {};
 

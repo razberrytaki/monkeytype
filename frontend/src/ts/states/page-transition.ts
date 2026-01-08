@@ -1,4 +1,4 @@
-let transition = true;
+let transition = false;
 
 export function set(val: boolean): void {
   transition = val;
