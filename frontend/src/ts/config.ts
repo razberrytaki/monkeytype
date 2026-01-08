@@ -305,14 +305,21 @@ export async function resetConfig(): Promise<void> {
 
 export async function loadFromLocalStorage(): Promise<void> {
   console.log("loading localStorage config");
-  const newConfig = configLS.get();
-  if (newConfig === undefined) {
-    await resetConfig();
-  } else {
-    await applyConfig(newConfig);
-    saveFullConfigToLocalStorage(true);
+  try {
+    const newConfig = configLS.get();
+    if (newConfig === undefined) {
+      await resetConfig();
+    } else {
+      await applyConfig(newConfig);
+      saveFullConfigToLocalStorage(true);
+    }
+  } catch (error) {
+    console.error("Error loading config from localStorage:", error);
+    throw error;
+  } finally {
+    console.log("configLoadPromise resolving");
+    loadDone();
   }
-  loadDone();
 }
 
 export function getConfigChanges(): Partial<Config> {

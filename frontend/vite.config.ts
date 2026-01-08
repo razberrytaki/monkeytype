@@ -10,7 +10,7 @@ import path from "node:path";
 import injectHTML from "vite-plugin-html-inject";
 import childProcess from "child_process";
 import autoprefixer from "autoprefixer";
-import { Fonts } from "./src/ts/constants/fonts";
+import { Fonts, FontConfig } from "./src/ts/constants/fonts";
 import { fontawesomeSubset } from "./vite-plugins/fontawesome-subset";
 import { fontPreview } from "./vite-plugins/font-preview";
 import { envConfig } from "./vite-plugins/env-config";
@@ -268,7 +268,8 @@ function getFontsConfig(): string {
     Object.keys(Fonts)
       .sort()
       .map((name: string) => {
-        const config = Fonts[name as KnownFontName];
+        // oxlint-disable-next-line no-unnecessary-type-assertion
+        const config = Fonts[name as keyof typeof Fonts] as FontConfig;
         if (config.systemFont === true) return "";
         return `"${name.replaceAll("_", " ")}": (
         "src": "${config.fileName}",

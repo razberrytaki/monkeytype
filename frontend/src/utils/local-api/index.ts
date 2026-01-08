@@ -1,9 +1,7 @@
-import type {
-  TypedResult,
-} from "@monkeytype/local-storage-manager";
+import type { TypedResult } from "@monkeytype/local-storage-manager";
 import storageManager from "@monkeytype/local-storage-manager";
-import * as Notifications from "../elements/notifications";
-import { createErrorMessage } from "../utils/misc";
+import * as Notifications from "../../ts/elements/notifications";
+import { createErrorMessage } from "../../ts/utils/misc";
 
 type ApiResponse<T = unknown> = {
   status: number;
@@ -13,11 +11,6 @@ type ApiResponse<T = unknown> = {
 
 type GetConfigResponse = {
   config: Record<string, unknown>;
-};
-
-type SubmitResultResponse = {
-  success: boolean;
-  resultId: string;
 };
 
 type GetResultsResponse = {
@@ -33,16 +26,16 @@ export async function getConfig(): Promise<ApiResponse<GetConfigResponse>> {
     const config = storageManager.getSettings();
     return {
       status: 200,
-      body: { config: config ?? {} },
+      body: { config: (config ?? {}) as Record<string, unknown> },
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<GetConfigResponse>(error);
   }
 }
 
 export async function saveConfig(
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
 ): Promise<ApiResponse<void>> {
   try {
     storageManager.setSettings(config);
@@ -52,13 +45,13 @@ export async function saveConfig(
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<void>(error);
   }
 }
 
 export async function submitResult(
-  result: TypedResult
-): Promise<ApiResponse<SubmitResultResponse>> {
+  result: TypedResult,
+): Promise<ApiResponse<{ success: boolean; resultId: string }>> {
   try {
     storageManager.addResult(result);
 
@@ -74,7 +67,7 @@ export async function submitResult(
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<{ success: boolean; resultId: string }>(error);
   }
 }
 
@@ -87,11 +80,13 @@ export async function getResults(): Promise<ApiResponse<GetResultsResponse>> {
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<GetResultsResponse>(error);
   }
 }
 
-export async function getPersonalBest(): Promise<ApiResponse<GetPersonalBestResponse>> {
+export async function getPersonalBest(): Promise<
+  ApiResponse<GetPersonalBestResponse>
+> {
   try {
     const pb = storageManager.getPersonalBest();
     return {
@@ -100,7 +95,7 @@ export async function getPersonalBest(): Promise<ApiResponse<GetPersonalBestResp
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<GetPersonalBestResponse>(error);
   }
 }
 
@@ -113,7 +108,7 @@ export async function clearHistory(): Promise<ApiResponse<void>> {
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<void>(error);
   }
 }
 
@@ -126,13 +121,11 @@ export async function exportData(): Promise<ApiResponse<{ data: string }>> {
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<{ data: string }>(error);
   }
 }
 
-export async function importData(
-  jsonData: string
-): Promise<ApiResponse<void>> {
+export async function importData(jsonData: string): Promise<ApiResponse<void>> {
   try {
     storageManager.importData(jsonData);
     Notifications.add("Data imported successfully", 1, { duration: 3 });
@@ -144,7 +137,7 @@ export async function importData(
   } catch (error) {
     const message = createErrorMessage(error, "Failed to import data");
     Notifications.add(message, -1, { duration: 3 });
-    return handleError(error);
+    return handleError<void>(error);
   }
 }
 
@@ -160,16 +153,16 @@ export async function getStorageInfo(): Promise<
       headers: new Headers(),
     };
   } catch (error) {
-    return handleError(error);
+    return handleError<{ size: number; available: boolean }>(error);
   }
 }
 
-function handleError(error: unknown): ApiResponse {
+function handleError<T>(error: unknown): ApiResponse<T> {
   console.error("LocalApi error:", error);
   const message = error instanceof Error ? error.message : "Unknown error";
   return {
     status: 500,
-    body: { message },
+    body: { message } as T,
     headers: new Headers(),
   };
 }

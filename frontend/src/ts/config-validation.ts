@@ -21,7 +21,7 @@ export function invalid(
 
   Notifications.add(message, -1);
   console.error(message);
-  void Sentry.captureException(new Error(message));
+  Sentry.captureException(new Error(message));
 }
 
 export function isConfigValueValid<T>(

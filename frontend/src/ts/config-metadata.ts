@@ -757,6 +757,7 @@ export const configMetadata: ConfigMetadataObject = {
           );
           return true;
         }
+        // oxlint-disable-next-line strict-boolean-expressions
         if (!snapshot) {
           Notifications.add(
             "Random theme 'custom' requires a snapshot to be set",
@@ -764,7 +765,12 @@ export const configMetadata: ConfigMetadataObject = {
           );
           return true;
         }
-        if (snapshot?.customThemes?.length === 0) {
+        if (
+          /* oxlint-disable-next-line strict-boolean-expressions */
+          snapshot?.customThemes &&
+          Object.keys(snapshot.customThemes).length === 0
+        ) {
+          // oxlint-disable-next-line strict-boolean-expressions
           Notifications.add(
             "Random theme 'custom' requires at least one custom theme to be saved",
             0,

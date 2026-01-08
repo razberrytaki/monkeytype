@@ -1,3 +1,5 @@
+import "../styles/vendor.scss";
+import "../styles/index.scss";
 import "./event-handlers/global";
 import "./event-handlers/footer";
 import "./event-handlers/keymap";
@@ -18,7 +20,8 @@ import * as Result from "./test/result";
 import { enable } from "./states/glarses-mode";
 import "./test/caps-warning";
 import "./modals/simple-modals";
-import * as CookiesModal from "./modals/cookies";
+// Cookies disabled for offline version
+// import * as CookiesModal from "./modals/cookies";
 import "./input/listeners";
 import "./ready";
 import "./controllers/route-controller";
@@ -32,7 +35,8 @@ import { isDevEnvironment, addToGlobal } from "./utils/misc";
 import * as VersionButton from "./elements/version-button";
 import * as Focus from "./test/focus";
 import { getDevOptionsModal } from "./utils/async-modules";
-import * as Cookies from "./cookies";
+// Cookies disabled for offline version
+// import * as Cookies from "./cookies";
 import "./elements/psa";
 import "./utils/url-handler";
 import { applyEngineSettings } from "./anim";
@@ -59,17 +63,33 @@ Object.defineProperty(window, "Math", {
 
 setNotificationHandler(Notifications.add);
 
+console.log("index.ts: applying engine settings");
 applyEngineSettings();
+console.log("index.ts: loading from localStorage");
 void loadFromLocalStorage();
+console.log("index.ts: updating version button");
 void VersionButton.update();
+console.log("index.ts: setting focus");
 Focus.set(true, true);
+console.log("index.ts: ready import already done (line 23)");
 
-const accepted = Cookies.getAcceptedCookies();
-if (accepted === null) {
-  CookiesModal.show();
-} else {
-  Cookies.activateWhatsAccepted();
-}
+// Cookies disabled for offline version
+// const accepted = Cookies.getAcceptedCookies();
+// if (accepted === null) {
+//   if (isDevEnvironment()) {
+//     const autoAccepted = {
+//       security: true,
+//       analytics: true,
+//       sentry: true,
+//     };
+//     Cookies.setAcceptedCookies(autoAccepted);
+//     Cookies.activateWhatsAccepted();
+//   } else {
+//     CookiesModal.show();
+//   }
+// } else {
+//   Cookies.activateWhatsAccepted();
+// }
 
 addToGlobal({
   config: Config,

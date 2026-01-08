@@ -28,7 +28,7 @@ describe("PresetController", () => {
     const notificationAddMock = vi.spyOn(Notifications, "add");
     const testRestartMock = vi.spyOn(TestLogic, "restart");
     const tagControllerClearMock = vi.spyOn(TagController, "clear");
-    const tagControllerSetMock = vi.spyOn(TagController, "set");
+    const tagControllerToggleMock = vi.spyOn(TagController, "toggle");
     const tagControllerSaveActiveMock = vi.spyOn(
       TagController,
       "saveActiveToLocalStorage",
@@ -43,7 +43,7 @@ describe("PresetController", () => {
         notificationAddMock,
         testRestartMock,
         tagControllerClearMock,
-        tagControllerSetMock,
+        tagControllerToggleMock,
         tagControllerSaveActiveMock,
       ].forEach((it) => it.mockClear());
 
@@ -78,16 +78,14 @@ describe("PresetController", () => {
 
       //THEN
       expect(tagControllerClearMock).toHaveBeenCalled();
-      expect(tagControllerSetMock).toHaveBeenNthCalledWith(
+      expect(tagControllerToggleMock).toHaveBeenNthCalledWith(
         1,
         "tagOne",
-        true,
         false,
       );
-      expect(tagControllerSetMock).toHaveBeenNthCalledWith(
+      expect(tagControllerToggleMock).toHaveBeenNthCalledWith(
         2,
         "tagTwo",
-        true,
         false,
       );
       expect(tagControllerSaveActiveMock).toHaveBeenCalled();
@@ -139,16 +137,14 @@ describe("PresetController", () => {
 
       //THEN
       expect(tagControllerClearMock).toHaveBeenCalled();
-      expect(tagControllerSetMock).toHaveBeenNthCalledWith(
+      expect(tagControllerToggleMock).toHaveBeenNthCalledWith(
         1,
         "tagOne",
-        true,
         false,
       );
-      expect(tagControllerSetMock).toHaveBeenNthCalledWith(
+      expect(tagControllerToggleMock).toHaveBeenNthCalledWith(
         2,
         "tagTwo",
-        true,
         false,
       );
       expect(tagControllerSaveActiveMock).toHaveBeenCalled();

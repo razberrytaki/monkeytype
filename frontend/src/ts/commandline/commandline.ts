@@ -607,6 +607,7 @@ function handleInputSubmit(): void {
     });
   }
 
+  // oxlint-disable-next-line no-deprecated
   void AnalyticsController.log("usedCommandLine", {
     command: inputModeParams.command.id,
   });
@@ -645,6 +646,7 @@ async function runActiveCommand(): Promise<void> {
     }
     const isSticky = command.sticky ?? false;
     if (!isSticky) {
+      // oxlint-disable-next-line no-deprecated
       void AnalyticsController.log("usedCommandLine", { command: command.id });
       if (!command.opensModal) {
         hide(true);
