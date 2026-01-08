@@ -1,6 +1,5 @@
 import * as Misc from "./utils/misc";
 import * as MonkeyPower from "./elements/monkey-power";
-import * as MerchBanner from "./elements/merch-banner";
 import * as ConnectionState from "./states/connection";
 import * as AccountButton from "./elements/account-button";
 import * as Loader from "./elements/loader";
@@ -26,8 +25,6 @@ onDOMReady(async () => {
   qs("body")?.setStyle({
     transition: "background .25s, transform .05s",
   });
-  console.log("ready.ts: showing merch banner if not closed before");
-  MerchBanner.showIfNotClosedBefore();
 
   for (const fb of getActiveFunboxesWithFunction("applyGlobalCSS")) {
     fb.functions.applyGlobalCSS();
