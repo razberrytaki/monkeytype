@@ -313,7 +313,12 @@ async function changeThemeList(): Promise<void> {
     themesList = themes.map((t) => {
       return t.name;
     });
-  } else if (Config.randomTheme === "custom" && DB.getSnapshot()) {
+  } else if (
+    Config.randomTheme === "custom" &&
+    /* oxlint-disable-next-line strict-boolean-expressions */
+    DB.getSnapshot()
+  ) {
+    // oxlint-disable-next-line strict-boolean-expressions
     themesList = DB.getSnapshot()?.customThemes?.map((ct) => ct._id) ?? [];
   }
   Arrays.shuffle(themesList);

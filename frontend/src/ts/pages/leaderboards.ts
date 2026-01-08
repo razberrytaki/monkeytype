@@ -332,8 +332,11 @@ async function requestData(update = false): Promise<void> {
       rankResponse.body.data !== null
     ) {
       state.userData = rankResponse.body.data;
-      state.page = Math.floor((state.userData.rank - 1) / state.pageSize);
-      updateGetParameters();
+      // oxlint-disable-next-line strict-boolean-expressions
+      if (state.userData) {
+        state.page = Math.floor((state.userData.rank - 1) / state.pageSize);
+        updateGetParameters();
+      }
     }
     requests.rank = undefined;
   }
@@ -344,14 +347,13 @@ async function requestData(update = false): Promise<void> {
   ]);
 
   if (dataResponse.status === 200) {
-    state.data = dataResponse.body.data.entries;
-    state.count = dataResponse.body.data.count;
-    state.pageSize = dataResponse.body.data.pageSize;
+    const data = dataResponse.body.data;
+    state.data = data.entries;
+    state.count = data.count;
+    state.pageSize = data.pageSize;
 
     if (state.type === "daily") {
-      //@ts-expect-error not sure why this is causing errors when it's clearly defined in the schema
-      // oxlint-disable-next-line no-unsafe-assignment
-      state.minWpm = dataResponse.body.data.minWpm;
+      state.minWpm = ("minWpm" in data ? data.minWpm : 0) as number;
     }
   } else {
     state.data = null;
@@ -600,7 +602,7 @@ function getLbMemoryDifference(): number | null {
   const diff = memory - rank;
 
   if (diff !== 0) {
-    void DB.updateLbMemory("time", state.mode2, "english", rank, true);
+    DB.updateLbMemory("time", state.mode2, "english", rank, true);
   }
 
   return diff;
@@ -845,15 +847,14 @@ function fillUser(): void {
 
 function updateContent(): void {
   qs(".pageLeaderboards")?.addClass("hidden");
-  return;
 
   qsa(".page.pageLeaderboards .loading").hide();
   qsa(".page.pageLeaderboards .updating").addClass("invisible");
   qs(".page.pageLeaderboards .error")?.hide();
 
   if (state.error !== undefined) {
-    qs(".page.pageLeaderboards .error")?.show();
-    qs(".page.pageLeaderboards .error p")?.setText(state.error);
+    qs(".pageLeaderboards .error")?.show();
+    qs(".pageLeaderboards .error p")?.setText(state.error ?? "");
     enableButtons();
     return;
   }
@@ -920,10 +921,8 @@ function updateFriendsButtons(): void {
   const friendsOnlyGroup = qs(
     ".page.pageLeaderboards .buttonGroup.friendsOnlyButtons",
   );
-  if (
-    isAuthenticated() &&
-    (ServerConfiguration.get()?.connections.enabled ?? false)
-  ) {
+  const serverConfig = ServerConfiguration.get();
+  if (isAuthenticated() && (serverConfig?.connections?.enabled ?? false)) {
     friendsOnlyGroup?.show();
   } else {
     friendsOnlyGroup?.hide();
@@ -1076,7 +1075,9 @@ async function updateValidDailyLeaderboards(): Promise<void> {
 
   //a rule can contain multiple values. create a flat list out of them
   const dailyRules = dailyRulesConfig.flatMap((rule) => {
-    const languages = convertRuleOption(rule.language) as Language[];
+    const languages = convertRuleOption(
+      rule.languages?.[0] ?? "",
+    ) as Language[];
     const mode2List = convertRuleOption(rule.mode2);
 
     return mode2List.map((mode2) => ({

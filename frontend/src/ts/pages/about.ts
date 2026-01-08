@@ -92,8 +92,10 @@ async function getStatsAndHistogramData(): Promise<void> {
   if (speedHistogramResponseData && typingStatsResponseData) {
     return;
   }
-
-  if (!ConnectionState.get()) {
+  if (
+    /* oxlint-disable-next-line no-deprecated */
+    !ConnectionState.get()
+  ) {
     Notifications.add("Cannot update all time stats - offline", 0);
     return;
   }

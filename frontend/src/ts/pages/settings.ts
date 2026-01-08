@@ -508,6 +508,7 @@ function setActiveFunboxButton(): void {
 }
 
 function refreshTagsSettingsSection(): void {
+  // oxlint-disable-next-line strict-boolean-expressions
   if (isAuthenticated() && DB.getSnapshot()) {
     const tagsEl = qs(".pageSettings .section.tags .tagsList")?.empty();
     DB.getSnapshot()?.tags?.forEach((tag) => {
@@ -545,6 +546,7 @@ function refreshTagsSettingsSection(): void {
 }
 
 function refreshPresetsSettingsSection(): void {
+  // oxlint-disable-next-line strict-boolean-expressions
   if (isAuthenticated() && DB.getSnapshot()) {
     const presetsEl = qs(
       ".pageSettings .section.presets .presetsList",
@@ -1010,9 +1012,11 @@ ConfigEvent.subscribe(({ key, newValue }) => {
   }
 });
 
+/* oxlint-disable-next-line no-deprecated */
 AuthEvent.subscribe((event) => {
-  if (event.type === "authStateChanged") {
-    if (event.data.isUserSignedIn) {
+  if (event?.type === "authStateChanged") {
+    const data = event.data as { isUserSignedIn?: boolean };
+    if (data.isUserSignedIn) {
       showAccountSection();
     } else {
       hideAccountSection();

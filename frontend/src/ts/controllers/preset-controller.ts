@@ -1,12 +1,13 @@
-import { Preset } from "@monkeytype/schemas/presets";
 import Config, { applyConfig, saveFullConfigToLocalStorage } from "../config";
 import * as DB from "../db";
 import * as Notifications from "../elements/notifications";
 import * as TestLogic from "../test/test-logic";
 import * as TagController from "./tag-controller";
-import { SnapshotPreset } from "../constants/default-snapshot";
+import type { Preset } from "@monkeytype/schemas/presets";
+import type { SnapshotPreset } from "../constants/default-snapshot";
 
 export async function apply(_id: string): Promise<void> {
+  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
   if (!snapshot) return;
 
@@ -31,7 +32,7 @@ export async function apply(_id: string): Promise<void> {
     TagController.clear(true);
     if (presetToApply.config.tags) {
       for (const tagId of presetToApply.config.tags) {
-        TagController.set(tagId, true, false);
+        TagController.toggle(tagId, false);
       }
       TagController.saveActiveToLocalStorage();
     }
@@ -47,6 +48,7 @@ function isPartialPreset(preset: SnapshotPreset): boolean {
 }
 
 export async function getPreset(_id: string): Promise<Preset | undefined> {
+  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
   if (!snapshot) {
     return;

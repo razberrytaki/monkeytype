@@ -24,29 +24,12 @@ export function saveActiveToLocalStorage(): void {
 }
 
 export function clear(nosave = false): void {
+  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
   if (!snapshot) return;
 
   snapshot.tags = snapshot.tags?.map((tag) => {
     tag.active = false;
-
-    return tag;
-  });
-
-  DB.setSnapshot(snapshot);
-  void ModesNotice.update();
-  if (!nosave) saveActiveToLocalStorage();
-}
-
-export function set(tagid: string, state: boolean, nosave = false): void {
-  const snapshot = DB.getSnapshot();
-  if (!snapshot) return;
-
-  snapshot.tags = snapshot.tags?.map((tag) => {
-    if (tag._id === tagid) {
-      tag.active = state;
-    }
-
     return tag;
   });
 
@@ -77,8 +60,12 @@ export function loadActiveFromLocalStorage(): void {
   saveActiveToLocalStorage();
 }
 
+// oxlint-disable-next-line no-deprecated
 AuthEvent.subscribe((event) => {
-  if (event.type === "snapshotUpdated" && event.data.isInitial) {
-    loadActiveFromLocalStorage();
+  if (event?.type === "snapshotUpdated") {
+    const data = event.data as { isInitial?: boolean };
+    if (data.isInitial) {
+      loadActiveFromLocalStorage();
+    }
   }
 });

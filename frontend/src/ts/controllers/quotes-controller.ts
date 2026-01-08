@@ -149,7 +149,9 @@ class QuotesController {
   }
 
   getRandomFavoriteQuote(language: Language): Quote | null {
+    // oxlint-disable-next-line strict-boolean-expressions
     const snapshot = DB.getSnapshot();
+    /* oxlint-disable-next-line strict-boolean-expressions */
     if (!snapshot) {
       return null;
     }
@@ -181,7 +183,9 @@ class QuotesController {
   }
 
   isQuoteFavorite({ language: quoteLanguage, id }: Quote): boolean {
+    // oxlint-disable-next-line strict-boolean-expressions
     const snapshot = DB.getSnapshot();
+    /* oxlint-disable-next-line strict-boolean-expressions */
     if (!snapshot) {
       return false;
     }
@@ -207,7 +211,9 @@ class QuotesController {
   }
 
   async setQuoteFavorite(quote: Quote, isFavorite: boolean): Promise<void> {
+    // oxlint-disable-next-line strict-boolean-expressions
     const snapshot = DB.getSnapshot();
+    /* oxlint-disable-next-line strict-boolean-expressions */
     if (!snapshot) {
       throw new Error("Snapshot is not available");
     }

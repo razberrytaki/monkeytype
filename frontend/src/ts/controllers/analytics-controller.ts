@@ -1,6 +1,6 @@
 /**
- * @deprecated Analytics removed in privacy fork
- * This file is a stub to prevent build errors.
+ * This file is a stub to prevent build errors in privacy fork.
+ * Analytics functionality has been removed.
  */
 
 export async function log(

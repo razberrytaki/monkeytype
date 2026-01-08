@@ -235,6 +235,7 @@ window.addEventListener("popstate", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  void router();
   document.body.addEventListener("click", (e) => {
     const target = e?.target as HTMLLinkElement;
     if (target.matches("[router-link]") && target?.href) {

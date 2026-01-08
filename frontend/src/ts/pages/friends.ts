@@ -56,7 +56,7 @@ export async function addFriend(receiverName: string): Promise<true | string> {
     return `Friend request failed: ${result.body.message}`;
   } else {
     const snapshot = DB.getSnapshot();
-    if (snapshot !== undefined) {
+    if (snapshot !== undefined && snapshot !== null) {
       const receiverUid = getReceiverUid(result.body.data);
       // oxlint-disable-next-line no-unsafe-member-access
       snapshot.connections[receiverUid] = result.body.data.status;
@@ -77,7 +77,7 @@ const addFriendModal = new SimpleModal({
       validation: {
         schema: UserNameSchema,
         isValid: remoteValidation(
-          async (name) => Ape.users.getNameAvailability({ params: { name } }),
+          async (_name) => Ape.users.getNameAvailability(),
           { check: (data) => !data.available || "Unknown user" },
         ),
         debounceDelay: 1000,
@@ -124,9 +124,7 @@ const removeFriendModal = new SimpleModal({
   },
   execFn: async (thisPopup) => {
     const connectionId = thisPopup.parameters[0] as string;
-    const result = await Ape.connections.delete({
-      params: { id: connectionId },
-    });
+    const result = await Ape.connections.delete({ params: { connectionId } });
     if (result.status !== 200) {
       return { status: -1, message: result.body.message };
     } else {
@@ -142,7 +140,7 @@ const removeFriendModal = new SimpleModal({
 
 async function fetchPendingConnections(): Promise<void> {
   const result = await Ape.connections.get({
-    query: { status: "pending", type: "incoming" },
+    params: { query: "", type: "incoming" },
   });
 
   if (result.status !== 200) {
@@ -409,11 +407,9 @@ qs(".pageFriends .pendingRequests table")?.on("click", async (e) => {
   Loader.show();
   const result =
     action === "rejected"
-      ? await Ape.connections.delete({
-          params: { id },
-        })
+      ? await Ape.connections.delete({ params: { connectionId: id } })
       : await Ape.connections.update({
-          params: { id },
+          params: { connectionId: id },
           body: { status: action },
         });
   Loader.hide();
@@ -494,9 +490,6 @@ function hideSpinner(): void {
 
 function update(): void {
   qs(".pageFriends")?.addClass("hidden");
-  return;
-  updatePendingConnections();
-  updateFriends();
 }
 
 export const page = new Page<undefined>({
@@ -529,7 +522,7 @@ export const page = new Page<undefined>({
     loadingPromise: async () => {
       await ServerConfiguration.configurationPromise;
       const serverConfig = ServerConfiguration.get();
-      if (!serverConfig?.connections.enabled) {
+      if (!serverConfig?.connections?.enabled) {
         throw new Error("Connectins are disabled.");
       }
 
@@ -559,9 +552,13 @@ onWindowLoad(() => {
   Skeleton.save("pageFriends");
 });
 
+/* oxlint-disable-next-line no-deprecated */
 AuthEvent.subscribe((event) => {
-  if (event.type === "authStateChanged" && !event.data.isUserSignedIn) {
-    pendingRequests = undefined;
-    friendsList = undefined;
+  if (event?.type === "authStateChanged") {
+    const data = event.data as { isUserSignedIn?: boolean };
+    if (!data.isUserSignedIn) {
+      pendingRequests = undefined;
+      friendsList = undefined;
+    }
   }
 });

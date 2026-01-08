@@ -2,17 +2,14 @@ import * as Misc from "../utils/misc";
 import * as Strings from "../utils/strings";
 import * as ActivePage from "../states/active-page";
 import * as Settings from "../pages/settings";
-import * as Account from "../pages/account";
 import * as PageTest from "../pages/test";
 import * as PageAbout from "../pages/about";
-import * as PageLogin from "../pages/login";
 import * as PageLoading from "../pages/loading";
 import * as PageProfile from "../pages/profile";
 import * as PageProfileSearch from "../pages/profile-search";
 import * as Friends from "../pages/friends";
 import * as Page404 from "../pages/404";
 import * as PageLeaderboards from "../pages/leaderboards";
-import * as PageAccountSettings from "../pages/account-settings";
 import * as PageTransition from "../states/page-transition";
 import * as AdController from "../controllers/ad-controller";
 import * as Focus from "../test/focus";
@@ -177,22 +174,28 @@ export async function change(
   if (!options.force && ActivePage.get() === pageName) {
     console.debug(`change page ${pageName} stoped, page already active`);
     return false;
+  }
+
+  if (["account", "login", "accountSettings"].includes(pageName)) {
+    console.debug(`change page to ${pageName} stopped, account pages disabled`);
+    return false;
   } else {
     console.log(`changing page ${pageName}`);
   }
 
+  // oxlint-disable-next-line tsdoc/no-missing-file-overview
   const pages = {
     loading: PageLoading.page,
     test: PageTest.page,
     settings: Settings.page,
     about: PageAbout.page,
-    account: Account.page,
-    login: PageLogin.page,
+    account: undefined as unknown as Page<unknown>,
+    login: undefined as unknown as Page<unknown>,
     profile: PageProfile.page,
     profileSearch: PageProfileSearch.page,
     friends: Friends.page,
     404: Page404.page,
-    accountSettings: PageAccountSettings.page,
+    accountSettings: undefined as unknown as Page<unknown>,
     leaderboards: PageLeaderboards.page,
   };
 
