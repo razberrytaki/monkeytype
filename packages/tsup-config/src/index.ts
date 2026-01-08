@@ -1,4 +1,5 @@
 import { defineConfig, Options } from "tsup";
+import { globSync } from "glob";
 
 export function extendConfig(
   customizer?: (options: Options) => Options,
@@ -7,13 +8,14 @@ export function extendConfig(
 ): (options: Options) => any {
   return (options) => {
     const overrideOptions = customizer?.(options);
+    const entry = globSync("src/*.ts", { cwd: process.cwd() });
     const config: Options = {
-      entry: ["src/**/*.ts"],
+      entry,
       splitting: false,
       sourcemap: true,
       clean: !(options.watch === true || options.watch === "true"),
       format: ["cjs", "esm"],
-      dts: { entry: ["src/**/*.ts"] },
+      dts: false,
       minify: true,
       ...overrideOptions,
     };

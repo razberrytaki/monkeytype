@@ -228,6 +228,10 @@ class LocalStorageManager {
     }
   }
 
+  public getResults(): TypedResult[] {
+    return this.getHistory();
+  }
+
   public addResult(result: TypedResult): void {
     const history = this.getHistory();
     history.push(result);

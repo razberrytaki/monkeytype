@@ -135,6 +135,10 @@ export const CommonResponses = {
 
 export type CommonResponsesType =
   | {
+      status: 200;
+      body: MonkeyResponseType;
+    }
+  | {
       status: 400 | 401 | 403 | 429 | 470 | 471 | 472 | 479;
       body: MonkeyClientErrorType;
     }

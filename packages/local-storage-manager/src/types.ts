@@ -24,6 +24,22 @@ export const TypedResultSchema = z.object({
   characters: z.number(),
   consistency: z.number(),
   rawWpm: z.number(),
+  quoteLength: z.number(),
+  charStats: z.array(z.number()),
+  tags: z.array(z.string()),
+  _id: z.string().optional(),
+  isPb: z.boolean().optional(),
+  restartCount: z.number().optional(),
+  afkDuration: z.number().optional(),
+  incompleteTestSeconds: z.number().optional(),
+  punctuation: z.boolean().optional(),
+  numbers: z.boolean().optional(),
+  language: z.string().optional(),
+  funbox: z.string().optional(),
+  difficulty: z.string().optional(),
+  lazyMode: z.boolean().optional(),
+  blindMode: z.boolean().optional(),
+  bailedOut: z.boolean().optional(),
 });
 
 export type TypedResult = z.infer<typeof TypedResultSchema>;
