@@ -31,7 +31,9 @@ export function addAllFromToday(): void {
   const todayDateMS = todayDate.getTime();
 
   seconds = 0;
+  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
+  /* oxlint-disable-next-line strict-boolean-expressions */
   if (!snapshot) return;
   const results = snapshot.results;
 

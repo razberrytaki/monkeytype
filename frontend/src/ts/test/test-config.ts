@@ -348,9 +348,11 @@ ConfigEvent.subscribe(({ key, newValue, previousValue }) => {
   }
 });
 
-AuthEvent.subscribe((event) => {
-  if (event.type === "authStateChanged") {
-    if (!event.data.isUserSignedIn) {
+// oxlint-disable-next-line no-deprecated
+AuthEvent.subscribe((event?: { type: string; data?: unknown }) => {
+  if (event?.type === "authStateChanged") {
+    const data = event.data as { isUserSignedIn?: boolean } | undefined;
+    if (!data?.isUserSignedIn) {
       hideFavoriteQuoteLength();
     } else {
       showFavoriteQuoteLength();

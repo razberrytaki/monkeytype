@@ -37,7 +37,11 @@ import type {
 } from "chartjs-plugin-annotation";
 import { Ape } from "../ape";
 import { CompletedEvent } from "@monkeytype/schemas/results";
-import { getActiveFunboxes, isFunboxActiveWithProperty } from "./funbox/list";
+import {
+  getActiveFunboxes,
+  getActiveFunboxNames,
+  isFunboxActiveWithProperty,
+} from "./funbox/list";
 import { getFunbox } from "@monkeytype/funbox";
 import { SnapshotUserTag } from "../constants/default-snapshot";
 import { Language } from "@monkeytype/schemas/languages";
@@ -312,9 +316,9 @@ export async function updateGraphPBLine(): Promise<void> {
     result.language,
     result.difficulty,
     result.lazyMode ?? false,
-    getFunbox(result.funbox),
+    getFunbox(result.funbox).map((fb) => fb.name),
   );
-  const localPbWpm = localPb?.wpm ?? 0;
+  const localPbWpm = localPb ?? 0;
   if (localPbWpm === 0) return;
   const typingSpeedUnit = getTypingSpeedUnit(Config.typingSpeedUnit);
   const chartlpb = Numbers.roundTo2(
@@ -538,9 +542,9 @@ export async function updateCrown(dontSave: boolean): Promise<void> {
       Config.language,
       Config.difficulty,
       Config.lazyMode,
-      getActiveFunboxes(),
+      getActiveFunboxNames(),
     );
-    const localPbWpm = localPb?.wpm ?? 0;
+    const localPbWpm = localPb ?? 0;
     pbDiff = result.wpm - localPbWpm;
     console.debug("Local PB", localPb, "diff", pbDiff);
     if (pbDiff <= 0) {
@@ -565,7 +569,7 @@ export async function updateCrown(dontSave: boolean): Promise<void> {
       Config.lazyMode,
       [],
     );
-    const localPbWpm = localPb?.wpm ?? 0;
+    const localPbWpm = localPb ?? 0;
     pbDiff = result.wpm - localPbWpm;
     console.debug("Local PB", localPb, "diff", pbDiff);
     if (pbDiff <= 0) {
@@ -713,7 +717,7 @@ async function updateTags(dontSave: boolean): Promise<void> {
   let annotationSide: LabelPosition = "start";
   let labelAdjust = 15;
   for (const tag of activeTags) {
-    const tpb = await DB.getLocalTagPB(
+    const tpb = DB.getLocalTagPB(
       tag._id,
       Config.mode,
       result.mode2,
@@ -721,7 +725,6 @@ async function updateTags(dontSave: boolean): Promise<void> {
       Config.numbers,
       Config.language,
       Config.difficulty,
-      Config.lazyMode,
     );
     $("#result .stats .tags .bottom").append(`
       <div tagid="${tag._id}" aria-label="PB: ${tpb}" data-balloon-pos="up">${tag.display}<i class="fas fa-crown hidden"></i></div>
@@ -732,9 +735,9 @@ async function updateTags(dontSave: boolean): Promise<void> {
       !dontSave &&
       (await resultCanGetPb()).value
     ) {
-      if (tpb < result.wpm) {
+      if (tpb !== null && tpb < result.wpm) {
         //new pb for that tag
-        await DB.saveLocalTagPB(
+        DB.saveLocalTagPB(
           tag._id,
           Config.mode,
           result.mode2,
@@ -763,7 +766,7 @@ async function updateTags(dontSave: boolean): Promise<void> {
           type: "line",
           id: "tpb",
           scaleID: "wpm",
-          value: typingSpeedUnit.fromWpm(tpb),
+          value: typingSpeedUnit.fromWpm(tpb ?? 0),
           borderColor: themecolors.sub + "55",
           borderWidth: 1,
           // borderDash: [4, 16],
@@ -783,7 +786,7 @@ async function updateTags(dontSave: boolean): Promise<void> {
             xAdjust: labelAdjust,
             display: true,
             content: `${tag.display} PB: ${Numbers.roundTo2(
-              typingSpeedUnit.fromWpm(tpb),
+              typingSpeedUnit.fromWpm(tpb ?? 0),
             ).toFixed(2)}`,
           },
         });
@@ -1009,6 +1012,7 @@ export async function update(
     $("#result #watchVideoAdButton").removeClass("hidden");
   }
 
+  // oxlint-disable-next-line no-deprecated
   if (!ConnectionState.get()) {
     ConnectionState.showOfflineBanner();
   }
@@ -1296,7 +1300,9 @@ $(".pageTest #favoriteQuoteButton").on("click", async () => {
   }
 
   const $button = $(".pageTest #favoriteQuoteButton .icon");
+  // oxlint-disable-next-line strict-boolean-expressions
   const dbSnapshot = DB.getSnapshot();
+  /* oxlint-disable-next-line strict-boolean-expressions */
   if (!dbSnapshot) return;
 
   if ($button.hasClass("fas")) {

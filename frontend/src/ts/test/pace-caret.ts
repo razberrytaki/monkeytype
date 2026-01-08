@@ -4,7 +4,7 @@ import * as DB from "../db";
 import * as Misc from "../utils/misc";
 import * as TestState from "./test-state";
 import * as ConfigEvent from "../observables/config-event";
-import { getActiveFunboxes } from "./funbox/list";
+import { getActiveFunboxNames } from "./funbox/list";
 import { Caret } from "../utils/caret";
 import { qsr } from "../utils/dom";
 
@@ -58,31 +58,30 @@ export async function init(): Promise<void> {
   const mode2 = Misc.getMode2(Config, TestWords.currentQuote);
   let wpm = 0;
   if (Config.paceCaret === "pb") {
-    wpm =
-      (
-        await DB.getLocalPB(
-          Config.mode,
-          mode2,
-          Config.punctuation,
-          Config.numbers,
-          Config.language,
-          Config.difficulty,
-          Config.lazyMode,
-          getActiveFunboxes(),
-        )
-      )?.wpm ?? 0;
+    const pb = await DB.getLocalPB(
+      Config.mode,
+      mode2,
+      Config.punctuation,
+      Config.numbers,
+      Config.language,
+      Config.difficulty,
+      Config.lazyMode,
+      getActiveFunboxNames(),
+    );
+    wpm = pb ?? 0;
   } else if (Config.paceCaret === "tagPb") {
-    wpm = await DB.getActiveTagsPB(
-      Config.mode,
-      mode2,
-      Config.punctuation,
-      Config.numbers,
-      Config.language,
-      Config.difficulty,
-      Config.lazyMode,
-    );
+    wpm =
+      (await DB.getActiveTagsPB(
+        Config.mode,
+        mode2,
+        Config.punctuation,
+        Config.numbers,
+        Config.language,
+        Config.difficulty,
+        Config.lazyMode,
+      )) ?? 0;
   } else if (Config.paceCaret === "average") {
-    [wpm] = await DB.getUserAverage10(
+    const avgData = await DB.getUserAverage10(
       Config.mode,
       mode2,
       Config.punctuation,
@@ -91,9 +90,10 @@ export async function init(): Promise<void> {
       Config.difficulty,
       Config.lazyMode,
     );
-    wpm = Math.round(wpm);
+    const [avgWpm] = avgData ?? [0, 0];
+    wpm = Math.round(avgWpm);
   } else if (Config.paceCaret === "daily") {
-    wpm = await DB.getUserDailyBest(
+    const dailyWpm = await DB.getUserDailyBest(
       Config.mode,
       mode2,
       Config.punctuation,
@@ -102,7 +102,7 @@ export async function init(): Promise<void> {
       Config.difficulty,
       Config.lazyMode,
     );
-    wpm = Math.round(wpm);
+    wpm = Math.round(dailyWpm ?? 0);
   } else if (Config.paceCaret === "custom") {
     wpm = Config.paceCaretCustomSpeed;
   } else if (Config.paceCaret === "last" || TestState.isPaceRepeat) {

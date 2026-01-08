@@ -1,9 +1,15 @@
 import * as Notifications from "../elements/notifications";
-import storageManager from "@local-storage-manager/local-storage-manager";
+import storageManager, {
+  type TypedResult,
+} from "@monkeytype/local-storage-manager";
+
+export async function syncNotSignedInLastResult(_uid: string): Promise<void> {
+  // No-op in privacy fork
+}
 
 export async function downloadResultsCSV(_array: unknown[]): Promise<void> {
   const results = storageManager.getResults();
-  if (!results || results.length === 0) {
+  if (results.length === 0) {
     Notifications.add("No results to export", 0);
     return;
   }
@@ -35,7 +41,7 @@ export async function downloadResultsCSV(_array: unknown[]): Promise<void> {
       "tags",
       "timestamp",
     ],
-    ...results.map((item) => [
+    ...results.map((item: TypedResult) => [
       item._id,
       item.isPb,
       item.wpm,

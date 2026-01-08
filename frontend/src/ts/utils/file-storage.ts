@@ -1,50 +1,67 @@
-import { openDB, DBSchema, IDBPDatabase } from "idb";
-
-type FileDB = DBSchema & {
-  files: {
-    key: string; // filename
-    value: string; // the data url
-  };
-};
-
-type Filename = "LocalBackgroundFile" | "LocalFontFamilyFile";
+/**
+ * @deprecated IndexedDB removed in privacy fork
+ * This file is a stub to prevent build errors.
+ * Files are now stored using localStorage.
+ */
 
 class FileStorage {
-  private dbPromise: Promise<IDBPDatabase<FileDB>>;
+  private data: Record<string, string> = {};
 
-  constructor(dbName = "file-storage-db") {
-    this.dbPromise = openDB<FileDB>(dbName, 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("files")) {
-          db.createObjectStore("files");
-        }
-      },
+  constructor(_dbName = "file-storage-db") {
+    // Load from localStorage
+    const stored = localStorage.getItem("file-storage-db");
+    /* oxlint-disable-next-line strict-boolean-expressions */
+    if (stored) {
+      try {
+        this.data = JSON.parse(stored) as Record<string, string>;
+      } catch {
+        this.data = {};
+      }
+    }
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    this.data[key] = value;
+    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
+  }
+
+  async get(key: string): Promise<string | undefined> {
+    return this.data[key];
+  }
+
+  async delete(key: string): Promise<void> {
+    const newData: Record<string, string> = {};
+    Object.entries(this.data).forEach(([k, v]) => {
+      if (k !== key) {
+        newData[k] = v;
+      }
     });
+    this.data = newData;
+    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
   }
 
-  async storeFile(filename: Filename, dataUrl: string): Promise<void> {
-    const db = await this.dbPromise;
-    await db.put("files", dataUrl, filename);
+  async clear(): Promise<void> {
+    this.data = {};
+    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
   }
 
-  async getFile(filename: Filename): Promise<string | undefined> {
-    const db = await this.dbPromise;
-    return db.get("files", filename);
+  async hasFile(key: string): Promise<boolean> {
+    return key in this.data;
   }
 
-  async deleteFile(filename: Filename): Promise<void> {
-    const db = await this.dbPromise;
-    await db.delete("files", filename);
+  async storeFile(key: string, value: string): Promise<void> {
+    return this.put(key, value);
   }
 
-  async listFilenames(): Promise<Filename[]> {
-    const db = await this.dbPromise;
-    return db.getAllKeys("files") as Promise<Filename[]>;
+  async deleteFile(key: string): Promise<void> {
+    return this.delete(key);
   }
 
-  async hasFile(filename: Filename): Promise<boolean> {
-    return (await this.getFile(filename)) !== undefined;
+  async getFile(key: string): Promise<string | undefined> {
+    return this.get(key);
   }
 }
 
-export default new FileStorage();
+/* oxlint-disable-next-line no-deprecated */
+const fileStorage = new FileStorage();
+export default fileStorage;

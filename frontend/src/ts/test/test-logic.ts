@@ -3,6 +3,9 @@
 
 import * as TestUI from "./test-ui";
 import * as ManualRestart from "./manual-restart-tracker";
+import * as KeymapEvent from "../observables/keymap-event";
+import { Ape } from "../ape";
+import type { TypedResult } from "@monkeytype/local-storage-manager";
 import Config, { setConfig, setQuoteLengthAll, toggleFunbox } from "../config";
 import * as Strings from "../utils/strings";
 import * as Misc from "../utils/misc";
@@ -97,6 +100,8 @@ export function startTest(now: number): boolean {
   } else {
     void AnalyticsController.log("testStartedNoLogin");
   }
+
+  // Analytics removed in privacy fork
 
   TestState.setActive(true);
   Replay.startReplayRecording();
@@ -353,7 +358,7 @@ async function init(): Promise<boolean> {
   testReinitCount++;
   if (testReinitCount > 3) {
     if (lastInitError) {
-      void Sentry.captureException(lastInitError);
+      Sentry.captureException(lastInitError);
       TestInitFailed.showError(
         `${lastInitError.name}: ${lastInitError.message}`,
       );
@@ -516,7 +521,7 @@ async function init(): Promise<boolean> {
       );
     }
 
-    return await init();
+    throw e;
   }
 
   let hasNumbers = false;
@@ -1225,7 +1230,15 @@ async function saveResult(
     return null;
   }
 
-  const response = await Ape.results.add({ body: { result: completedEvent } });
+  const typedResult: TypedResult = {
+    id: `result_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    ...completedEvent,
+    characters: completedEvent.charTotal,
+    quoteLength: completedEvent.quoteLength ?? 0,
+    funbox: completedEvent.funbox.join(","),
+  };
+
+  const response = await Ape.results.add({ body: { result: typedResult } });
 
   AccountButton.loading(false);
 
@@ -1284,7 +1297,9 @@ async function saveResult(
     const result = structuredClone(
       completedEvent,
     ) as unknown as SnapshotResult<Mode>;
-    result._id = data.insertedId;
+    if (data.insertedId !== null) {
+      result._id = data.insertedId;
+    }
     if (data.isPb !== undefined && data.isPb) {
       result.isPb = true;
     }
@@ -1301,7 +1316,7 @@ async function saveResult(
       completedEvent.language,
       completedEvent.difficulty,
       completedEvent.lazyMode,
-      getFunbox(completedEvent.funbox),
+      getFunbox(completedEvent.funbox).map((fb) => fb.name),
     );
 
     if (localPb !== undefined) {
@@ -1338,7 +1353,7 @@ async function saveResult(
   if (isRetrying) {
     Notifications.add("Result saved", 1, { important: true });
   }
-  DB.saveLocalResult(dataToSave);
+  void DB.saveLocalResult(dataToSave);
   return response;
 }
 
