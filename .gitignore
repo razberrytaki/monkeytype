@@ -133,3 +133,5 @@ frontend/.env.sentry-build-plugin
 
 # Git worktrees
 .worktrees/
+
+.wrangler
