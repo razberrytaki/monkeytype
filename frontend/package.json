@@ -23,8 +23,10 @@
   },
   "dependencies": {
     "@date-fns/utc": "1.2.0",
+    "@monkeytype/contracts": "workspace:*",
     "@monkeytype/funbox": "workspace:*",
     "@monkeytype/local-storage-manager": "workspace:*",
+    "@monkeytype/schemas": "workspace:*",
     "@monkeytype/util": "workspace:*",
     "animejs": "4.2.2",
     "balloon-css": "1.2.0",

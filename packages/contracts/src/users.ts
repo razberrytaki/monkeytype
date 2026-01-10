@@ -961,5 +961,5 @@ export const usersContract = c.router(
     }),
 
     commonResponses: CommonResponses,
-  },
+  } as const,
 );

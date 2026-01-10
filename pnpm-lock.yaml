@@ -261,12 +261,18 @@ importers:
       '@date-fns/utc':
         specifier: 1.2.0
         version: 1.2.0
+      '@monkeytype/contracts':
+        specifier: workspace:*
+        version: link:../packages/contracts
       '@monkeytype/funbox':
         specifier: workspace:*
         version: link:../packages/funbox
       '@monkeytype/local-storage-manager':
         specifier: workspace:*
         version: link:../packages/local-storage-manager
+      '@monkeytype/schemas':
+        specifier: workspace:*
+        version: link:../packages/schemas
       '@monkeytype/util':
         specifier: workspace:*
         version: link:../packages/util

@@ -10,13 +10,6 @@ export default extendConfig((options) => {
   return {
     ...options,
     entry,
-    dts: {
-      entry,
-      tsconfig: {
-        compilerOptions: {
-          skipLibCheck: true,
-        },
-      },
-    },
+    dts: false,
   };
 });

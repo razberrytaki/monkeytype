@@ -165,8 +165,9 @@ describe("ConfigMeta", () => {
     };
 
     it.for(
-      Object.entries(testCases).flatMap(([key, value]) =>
-        value.flatMap((it) => ({ key: key as ConfigKey, ...it })),
+      Object.entries(testCases).flatMap(
+        ([key, value]) =>
+          value?.flatMap((it) => ({ key: key as ConfigKey, ...it })) ?? [],
       ),
     )(
       `$key value=$value given=$given fail=$fail`,
@@ -325,8 +326,9 @@ describe("ConfigMeta", () => {
     };
 
     it.for(
-      Object.entries(testCases).flatMap(([key, value]) =>
-        value.flatMap((it) => ({ key: key as ConfigKey, ...it })),
+      Object.entries(testCases).flatMap(
+        ([key, value]) =>
+          value?.flatMap((it) => ({ key: key as ConfigKey, ...it })) ?? [],
       ),
     )(
       `$key value=$value given=$given expected=$expected`,
