@@ -26,7 +26,6 @@ import "./input/listeners";
 import "./ready";
 import "./controllers/route-controller";
 import "./pages/about";
-import "./elements/scroll-to-top";
 import "./elements/no-css";
 import { egVideoListener } from "./popups/video-ad-popup";
 import "./test/tts";
@@ -41,6 +40,7 @@ import "./elements/psa";
 import "./utils/url-handler";
 import { applyEngineSettings } from "./anim";
 import { qs, qsa, qsr } from "./utils/dom";
+import { mountComponents } from "./components/mount";
 
 // Lock Math.random
 Object.defineProperty(Math, "random", {
@@ -114,3 +114,5 @@ if (isDevEnvironment()) {
     module.appendButton();
   });
 }
+
+mountComponents();

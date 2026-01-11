@@ -187,6 +187,19 @@ export function saveLocalTagPB(
   // No-op
 }
 
+export async function updateLocalTagPB(
+  _tagId: string,
+  _mode: string,
+  _mode2: string,
+  _punctuation: boolean,
+  _numbers: boolean,
+  _language: string,
+  _difficulty: string,
+  _lazyMode: boolean,
+): Promise<void> {
+  // No-op - localStorage handles tag PB updates
+}
+
 export async function getUserDailyBest(
   _mode: string,
   _mode2: string,

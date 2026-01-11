@@ -24,6 +24,7 @@ import { ViteMinifyPlugin } from "vite-plugin-minify";
 import { VitePWA } from "vite-plugin-pwa";
 // eslint-disable-next-line import/no-unresolved
 import UnpluginInjectPreload from "unplugin-inject-preload/vite";
+import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig(({ mode }): UserConfig => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -67,6 +68,7 @@ function getPlugins({
     }),
     jqueryInject(),
     injectHTML(),
+    solidPlugin(),
   ];
 
   const devPlugins: PluginOption[] = [Inspect()];
