@@ -18,7 +18,7 @@ import { languageHashes } from "./vite-plugins/language-hashes";
 import { minifyJson } from "./vite-plugins/minify-json";
 import { versionFile } from "./vite-plugins/version-file";
 import { jqueryInject } from "./vite-plugins/jquery-inject";
-import { oxlintChecker } from "./vite-plugins/oxlint-checker";
+// import { oxlintChecker } from "./vite-plugins/oxlint-checker";
 import Inspect from "vite-plugin-inspect";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
 import { VitePWA } from "vite-plugin-pwa";
@@ -61,11 +61,11 @@ function getPlugins({
   const plugins: PluginOption[] = [
     envConfig({ isDevelopment, clientVersion, env }),
     languageHashes({ skip: isDevelopment }),
-    oxlintChecker({
-      debounceDelay: 125,
-      typeAware: true,
-      overlay: true,
-    }),
+    // oxlintChecker({
+    //   debounceDelay: 125,
+    //   typeAware: true,
+    //   overlay: true,
+    // }),
     jqueryInject(),
     injectHTML(),
     solidPlugin(),
