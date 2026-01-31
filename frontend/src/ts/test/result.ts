@@ -1,7 +1,6 @@
 //TODO: use Format
 import { Chart, type PluginChartOptions } from "chart.js";
 import Config, { setConfig } from "../config";
-import * as AdController from "../controllers/ad-controller";
 import * as ChartController from "../controllers/chart-controller";
 import QuotesController, { Quote } from "../controllers/quotes-controller";
 import * as DB from "../db";
@@ -967,11 +966,6 @@ export async function update(
   } else {
     $("#result .loginTip").removeClass("hidden");
   }
-  if (Config.ads === "off" || Config.ads === "result") {
-    $("#result #watchVideoAdButton").addClass("hidden");
-  } else {
-    $("#result #watchVideoAdButton").removeClass("hidden");
-  }
 
   // oxlint-disable-next-line no-deprecated
   if (!ConnectionState.get()) {
@@ -1090,7 +1084,6 @@ export async function update(
   if (Config.alwaysShowWordsHistory && canQuickRestart && !GlarsesMode.get()) {
     void TestUI.toggleResultWords(true);
   }
-  AdController.updateFooterAndVerticalAds(true);
   void Funbox.clear();
 
   $(".pageTest .loading").addClass("hidden");
@@ -1107,7 +1100,6 @@ export async function update(
   });
 
   Misc.scrollToCenterOrTop(resultEl);
-  void AdController.renderResult();
   TestUI.setResultCalculating(false);
   $("#words").empty();
   ChartController.result.resize();

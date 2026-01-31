@@ -49,7 +49,7 @@ import * as MonkeyPower from "../elements/monkey-power";
 import * as SlowTimer from "../states/slow-timer";
 import * as TestConfig from "./test-config";
 import * as CompositionDisplay from "../elements/composition-display";
-import * as AdController from "../controllers/ad-controller";
+
 import * as LayoutfluidFunboxTimer from "../test/funbox/layoutfluid-funbox-timer";
 import * as Keymap from "../elements/keymap";
 import * as ThemeController from "../controllers/theme-controller";
@@ -961,9 +961,9 @@ export async function scrollTape(noAnimation = false): Promise<void> {
     .slice(0, activeWordIndex)
     .filter((child) => child.classList.contains("afterNewline")).length;
   // the second `.afterNewline` after active word is visible during line jump
-  let lastVisibleAfterNewline = afterNewLineEls[newLinesBeforeActiveWord + 1] as
-    | HTMLElement
-    | undefined;
+  let lastVisibleAfterNewline = afterNewLineEls[
+    newLinesBeforeActiveWord + 1
+  ] as HTMLElement | undefined;
   if (lastVisibleAfterNewline) {
     lastElementIndex = wordsChildrenArr.indexOf(lastVisibleAfterNewline);
   } else {
@@ -1859,18 +1859,16 @@ export function onTestRestart(source: "testPage" | "resultPage"): void {
 
   currentTestLine = 0;
   if (ActivePage.get() === "test") {
-    AdController.updateFooterAndVerticalAds(false);
+    if (Config.compositionDisplay === "below") {
+      CompositionDisplay.update(" ");
+      CompositionDisplay.show();
+    } else {
+      CompositionDisplay.hide();
+    }
+    void SoundController.clearAllSounds();
+    cancelPendingAnimationFramesStartingWith("test-ui");
+    showWords();
   }
-  AdController.destroyResult();
-  if (Config.compositionDisplay === "below") {
-    CompositionDisplay.update(" ");
-    CompositionDisplay.show();
-  } else {
-    CompositionDisplay.hide();
-  }
-  void SoundController.clearAllSounds();
-  cancelPendingAnimationFramesStartingWith("test-ui");
-  showWords();
 }
 
 export function onTestFinish(): void {

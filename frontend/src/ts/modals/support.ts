@@ -1,5 +1,4 @@
 import AnimatedModal from "../utils/animated-modal";
-import * as Commandline from "../commandline/commandline";
 
 export function show(): void {
   void modal.show();
@@ -7,14 +6,4 @@ export function show(): void {
 
 const modal = new AnimatedModal({
   dialogId: "supportModal",
-  setup: async (modalEl): Promise<void> => {
-    modalEl.qs("button.ads")?.on("click", async () => {
-      Commandline.show(
-        { subgroupOverride: "ads" },
-        {
-          modalChain: modal,
-        },
-      );
-    });
-  },
 });
