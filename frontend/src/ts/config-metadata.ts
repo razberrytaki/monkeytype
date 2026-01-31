@@ -3,7 +3,6 @@ import * as DB from "./db";
 import * as Notifications from "./elements/notifications";
 import { isAuthenticated } from "./firebase";
 import { canSetFunboxWithConfig } from "./test/funbox/funbox-validation";
-import { isDevEnvironment, reloadAfter } from "./utils/misc";
 import * as ConfigSchemas from "@monkeytype/schemas/configs";
 import { roundTo1 } from "@monkeytype/util/numbers";
 import { capitalizeFirstLetter } from "./utils/strings";
@@ -866,6 +865,11 @@ export const configMetadata: ConfigMetadataObject = {
       return value;
     },
   },
+  ads: {
+    icon: "fa-ad",
+    changeRequiresRestart: false,
+    group: "hidden",
+  },
   monkey: {
     icon: "fa-egg",
     displayString: "monkey",
@@ -877,31 +881,5 @@ export const configMetadata: ConfigMetadataObject = {
     displayString: "monkey power level",
     changeRequiresRestart: false,
     group: "hidden",
-  },
-
-  // ads
-  ads: {
-    icon: "fa-ad",
-    changeRequiresRestart: false,
-    group: "ads",
-    overrideValue: ({ value }) => {
-      if (isDevEnvironment()) {
-        return "off";
-      }
-      return value;
-    },
-    isBlocked: ({ value }) => {
-      if (value !== "off" && isDevEnvironment()) {
-        Notifications.add("Ads are disabled in development mode.", 0);
-        return true;
-      }
-      return false;
-    },
-    afterSet: ({ nosave }) => {
-      if (!nosave && !isDevEnvironment()) {
-        reloadAfter(3);
-        Notifications.add("Ad settings changed. Refreshing...", 0);
-      }
-    },
   },
 };

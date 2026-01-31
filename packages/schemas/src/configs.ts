@@ -169,6 +169,9 @@ export const AccountChartSchema = z.tuple([
 ]);
 export type AccountChart = z.infer<typeof AccountChartSchema>;
 
+export const AdsSchema = z.enum(["off"]);
+export type Ads = z.infer<typeof AdsSchema>;
+
 export const MinimumWordsPerMinuteSchema = z.enum(["off", "custom"]);
 export type MinimumWordsPerMinute = z.infer<typeof MinimumWordsPerMinuteSchema>;
 
@@ -196,9 +199,6 @@ export const TypingSpeedUnitSchema = z.enum([
   "wph",
 ]);
 export type TypingSpeedUnit = z.infer<typeof TypingSpeedUnitSchema>;
-
-export const AdsSchema = z.enum(["off", "result", "on", "sellout"]);
-export type Ads = z.infer<typeof AdsSchema>;
 
 export const MinimumAccuracySchema = z.enum(["off", "custom"]);
 export type MinimumAccuracy = z.infer<typeof MinimumAccuracySchema>;
@@ -482,11 +482,9 @@ export const ConfigSchema = z
 
     // other (hidden)
     accountChart: AccountChartSchema,
+    ads: AdsSchema,
     monkey: z.boolean(),
     monkeyPowerLevel: MonkeyPowerLevelSchema,
-
-    // ads
-    ads: AdsSchema,
   } satisfies Record<string, ZodSchema>)
   .strict();
 
@@ -508,6 +506,5 @@ export const ConfigGroupNameSchema = z.enum([
   "theme",
   "hideElements",
   "hidden",
-  "ads",
 ]);
 export type ConfigGroupName = z.infer<typeof ConfigGroupNameSchema>;
