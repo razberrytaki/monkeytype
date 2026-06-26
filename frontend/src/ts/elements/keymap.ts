@@ -1,14 +1,12 @@
-import Config from "../config";
-import * as ThemeColors from "./theme-colors";
-import * as ConfigEvent from "../observables/config-event";
-import * as KeymapEvent from "../observables/keymap-event";
+import { Config } from "../config/store";
+import { configEvent } from "../events/config";
+import { keymapEvent } from "../events/keymap";
 import * as Misc from "../utils/misc";
 import * as JSONData from "../utils/json-data";
 import * as Hangul from "hangul-js";
-import * as Notifications from "../elements/notifications";
-import * as ActivePage from "../states/active-page";
-import * as TestWords from "../test/test-words";
-import { capsState } from "../test/caps-warning";
+import { showErrorNotification } from "../states/notifications";
+import { getActivePage } from "../states/core";
+import { onCapsLockChange, isCapsLockOn } from "@leonabcd123/modern-caps-lock";
 import * as ShiftTracker from "../test/shift-tracker";
 import * as AltTracker from "../test/alt-tracker";
 import * as KeyConverter from "../utils/key-converter";
@@ -18,6 +16,10 @@ import { LayoutObject } from "@monkeytype/schemas/layouts";
 import { animate } from "animejs";
 import { ElementsWithUtils, qsr } from "../utils/dom";
 import { requestDebouncedAnimationFrame } from "../utils/debounced-animation-frame";
+import { getTheme } from "../states/theme";
+
+import { createEffectOn } from "../hooks/effects";
+import { wordsHaveNumbers } from "../test/test-state";
 
 export const keyDataDelimiter = "\uE000";
 const keymap = qsr("#keymap");
@@ -61,6 +63,11 @@ const stenoKeys: LayoutObject = {
   },
 };
 
+createEffectOn(getTheme, () => {
+  //reset calculated style on all keys
+  keymap.qsa(".keymapKey").setStyle({});
+});
+
 function findKeyElements(char: string): ElementsWithUtils | null {
   if (char === "\n") return null;
 
@@ -94,7 +101,7 @@ function highlightKey(currentKey: string): void {
       $target.addClass("activeKey");
     } catch (e) {
       if (e instanceof Error) {
-        console.log("could not update highlighted keymap key: " + e.message);
+        console.log(`could not update highlighted keymap key: ${e.message}`);
       }
     }
   });
@@ -106,7 +113,7 @@ async function flashKey(key: string, correct?: boolean): Promise<void> {
     const elements = findKeyElements(key);
     if (elements === null || elements.length === 0) return;
 
-    const themecolors = await ThemeColors.getAll();
+    const themecolors = getTheme();
 
     try {
       let startingStyle = {
@@ -141,11 +148,11 @@ async function flashKey(key: string, correct?: boolean): Promise<void> {
 }
 
 export function hide(): void {
-  keymap.addClass("hidden");
+  keymap.hide();
 }
 
 export function show(): void {
-  keymap.removeClass("hidden");
+  keymap.show();
 }
 
 function buildRow(options: {
@@ -398,7 +405,7 @@ export async function refresh(): Promise<void> {
       : Config.layout;
 
   if (Config.keymapMode === "off") return;
-  if (ActivePage.get() !== "test") return;
+  if (getActivePage() !== "test") return;
   if (!layoutName) return;
   try {
     let layoutNameDisplayString = layoutName;
@@ -417,15 +424,14 @@ export async function refresh(): Promise<void> {
         layoutNameDisplayString = Config.keymapLayout;
       }
     } catch (e) {
-      Notifications.add(
-        Misc.createErrorMessage(e, `Failed to load keymap ${layoutName}`),
-        -1,
-      );
+      showErrorNotification(`Failed to load keymap ${layoutName}`, {
+        error: e,
+      });
       return;
     }
 
     const showTopRow =
-      (TestWords.hasNumbers && Config.keymapMode === "next") ||
+      (wordsHaveNumbers && Config.keymapMode === "next") ||
       Config.keymapShowTopRow === "always" ||
       (layoutData.keymapShowTopRow && Config.keymapShowTopRow !== "never");
 
@@ -478,7 +484,7 @@ export async function refresh(): Promise<void> {
   } catch (e) {
     if (e instanceof Error) {
       console.log(
-        "something went wrong when changing layout, resettings: " + e.message,
+        `something went wrong when changing layout, resettings: ${e.message}`,
       );
       // UpdateConfig.setConfig("keymapLayout", "qwerty",true);
     }
@@ -498,6 +504,7 @@ function getLegendStates(): KeymapLegendStates | undefined {
   // so we have to check for that.
   const shiftState = ShiftTracker.leftState || ShiftTracker.rightState;
   const altState = AltTracker.leftState || AltTracker.rightState;
+  const capsState = isCapsLockOn();
 
   const osDependentLettersState = isMacLike
     ? shiftState || capsState
@@ -553,7 +560,7 @@ async function updateLegends(): Promise<void> {
 
   const layout = await JSONData.getLayout(layoutName).catch(() => undefined);
   if (layout === undefined) {
-    Notifications.add("Failed to load keymap layout", -1);
+    showErrorNotification("Failed to load keymap layout");
 
     return;
   }
@@ -595,7 +602,7 @@ async function updateLegends(): Promise<void> {
 }
 let ignoreConfigEvent = false;
 
-ConfigEvent.subscribe(({ key }) => {
+configEvent.subscribe(({ key }) => {
   const handleMode = (): void => {
     keymap.qsa(".activeKey").removeClass("activeKey");
     keymap.qsa(".keymapKey").setAttribute("style", "");
@@ -666,7 +673,7 @@ ConfigEvent.subscribe(({ key }) => {
   }
 });
 
-KeymapEvent.subscribe((mode, key, correct) => {
+keymapEvent.subscribe(({ mode, key, correct }) => {
   if (mode === "highlight") {
     highlightKey(key);
   }
@@ -697,4 +704,8 @@ document.addEventListener("keyup", (e) => {
   ) {
     void updateLegends();
   }
+});
+
+onCapsLockChange(() => {
+  if (Config.keymapLegendStyle === "dynamic") void updateLegends();
 });

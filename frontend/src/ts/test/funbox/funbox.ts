@@ -1,27 +1,30 @@
-import * as Notifications from "../../elements/notifications";
-import * as Misc from "../../utils/misc";
+import {
+  showNoticeNotification,
+  showErrorNotification,
+} from "../../states/notifications";
 import * as JSONData from "../../utils/json-data";
 import * as Strings from "../../utils/strings";
-import * as ManualRestart from "../manual-restart-tracker";
-import Config, {
-  setConfig,
+import { Config } from "../../config/store";
+import {
   toggleFunbox as configToggleFunbox,
-} from "../../config";
+  setConfig,
+} from "../../config/setters";
 import * as MemoryTimer from "./memory-funbox-timer";
 import * as FunboxMemory from "./funbox-memory";
 import { HighlightMode, FunboxName } from "@monkeytype/schemas/configs";
 import { Mode } from "@monkeytype/schemas/shared";
-import { checkCompatibility } from "@monkeytype/funbox";
+import { checkCompatibility, checkForcedConfig } from "@monkeytype/funbox";
 import {
+  getAllFunboxes,
   getActiveFunboxes,
   getActiveFunboxNames,
-  get,
   getActiveFunboxesWithFunction,
   isFunboxActiveWithProperty,
   getActiveFunboxesWithProperty,
 } from "./list";
-import { checkForcedConfig } from "./funbox-validation";
 import { tryCatch } from "@monkeytype/util/trycatch";
+import { qs, qsa } from "../../utils/dom";
+import { configEvent } from "../../events/config";
 
 export function toggleScript(...params: string[]): void {
   if (Config.funbox.length === 0) return;
@@ -32,11 +35,6 @@ export function toggleScript(...params: string[]): void {
 }
 
 export function setFunbox(funbox: FunboxName[]): boolean {
-  if (funbox.length === 0) {
-    for (const fb of getActiveFunboxesWithFunction("clearGlobal")) {
-      fb.functions.clearGlobal();
-    }
-  }
   FunboxMemory.load();
   setConfig("funbox", funbox);
   return true;
@@ -47,39 +45,31 @@ export function toggleFunbox(funbox: FunboxName): void {
     !checkCompatibility(getActiveFunboxNames(), funbox) &&
     !Config.funbox.includes(funbox)
   ) {
-    Notifications.add(
+    showNoticeNotification(
       `${Strings.capitalizeFirstLetter(
         funbox.replace(/_/g, " "),
       )} funbox is not compatible with the current funbox selection`,
-      0,
     );
     return;
   }
   FunboxMemory.load();
   configToggleFunbox(funbox, false);
-
-  if (!getActiveFunboxNames().includes(funbox)) {
-    get(funbox).functions?.clearGlobal?.();
-  } else {
-    get(funbox).functions?.applyGlobalCSS?.();
-  }
 }
 
 export async function clear(): Promise<boolean> {
-  $("body").attr(
+  qs("body")?.setAttribute(
     "class",
-    $("body")
-      ?.attr("class")
+    qs("body")
+      ?.getAttribute("class")
       ?.split(/\s+/)
       ?.filter((it) => !it.startsWith("fb-"))
       ?.join(" ") ?? "",
   );
 
-  $(".funBoxTheme").remove();
+  qsa(".funBoxTheme").remove();
 
-  $("#wordsWrapper").removeClass("hidden");
+  qs("#wordsWrapper")?.show();
   MemoryTimer.reset();
-  ManualRestart.set();
   return true;
 }
 
@@ -95,14 +85,10 @@ export async function activate(
   // The configuration might be edited with dev tools,
   // so we need to double check its validity
   if (!checkCompatibility(getActiveFunboxNames())) {
-    Notifications.add(
-      Misc.createErrorMessage(
-        undefined,
-        `Failed to activate funbox: funboxes ${Config.funbox
-          .map((it) => it.replace(/_/g, " "))
-          .join(", ")} are not compatible`,
-      ),
-      -1,
+    showErrorNotification(
+      `Failed to activate funbox: funboxes ${Config.funbox
+        .map((it) => it.replace(/_/g, " "))
+        .join(", ")} are not compatible`,
     );
     setConfig("funbox", [], {
       nosave: true,
@@ -115,16 +101,13 @@ export async function activate(
   await setFunboxBodyClasses();
   await applyFunboxCSS();
 
-  $("#wordsWrapper").removeClass("hidden");
+  qs("#wordsWrapper")?.show();
 
   const { data: language, error } = await tryCatch(
     JSONData.getCurrentLanguage(Config.language),
   );
   if (error) {
-    Notifications.add(
-      Misc.createErrorMessage(error, "Failed to activate funbox"),
-      -1,
-    );
+    showErrorNotification("Failed to activate funbox", { error });
     setConfig("funbox", [], {
       nosave: true,
     });
@@ -132,11 +115,10 @@ export async function activate(
     return false;
   }
 
-  if (language.ligatures) {
-    if (isFunboxActiveWithProperty("noLigatures")) {
-      Notifications.add(
+  if (language.joiningScript) {
+    if (isFunboxActiveWithProperty("noJoiningScript")) {
+      showNoticeNotification(
         "Current language does not support this funbox mode",
-        0,
       );
       setConfig("funbox", [], {
         nosave: true,
@@ -184,14 +166,12 @@ export async function activate(
 
   if (!canSetSoFar) {
     if (Config.funbox.length > 1) {
-      Notifications.add(
+      showErrorNotification(
         `Failed to activate funboxes ${Config.funbox}: no intersecting forced configs. Disabling funbox`,
-        -1,
       );
     } else {
-      Notifications.add(
+      showErrorNotification(
         `Failed to activate funbox ${Config.funbox}: no forced configs. Disabling funbox`,
-        -1,
       );
     }
     setConfig("funbox", [], {
@@ -201,11 +181,9 @@ export async function activate(
     return;
   }
 
-  ManualRestart.set();
   for (const fb of getActiveFunboxesWithFunction("applyConfig")) {
     fb.functions.applyConfig();
   }
-  // ModesNotice.update();
   return true;
 }
 
@@ -216,15 +194,15 @@ export async function rememberSettings(): Promise<void> {
 }
 
 async function setFunboxBodyClasses(): Promise<boolean> {
-  const $body = $("body");
+  const body = qs("body");
 
   const activeFbClasses = getActiveFunboxNames().map(
-    (name) => "fb-" + name.replaceAll("_", "-"),
+    (name) => `fb-${name.replaceAll("_", "-")}`,
   );
 
   const currentClasses =
-    $body
-      ?.attr("class")
+    body
+      ?.getAttribute("class")
       ?.split(/\s+/)
       .filter((it) => !it.startsWith("fb-")) ?? [];
 
@@ -232,7 +210,7 @@ async function setFunboxBodyClasses(): Promise<boolean> {
     currentClasses.push("ignore-reduced-motion");
   }
 
-  $body.attr(
+  body?.setAttribute(
     "class",
     [...new Set([...currentClasses, ...activeFbClasses]).keys()].join(" "),
   );
@@ -241,13 +219,26 @@ async function setFunboxBodyClasses(): Promise<boolean> {
 }
 
 async function applyFunboxCSS(): Promise<boolean> {
-  $(".funBoxTheme").remove();
+  qsa(".funBoxTheme").remove();
   for (const funbox of getActiveFunboxesWithProperty("hasCssFile")) {
     const css = document.createElement("link");
     css.classList.add("funBoxTheme");
     css.rel = "stylesheet";
-    css.href = "funbox/" + funbox.name + ".css";
+    css.href = `funbox/${funbox.name}.css`;
     document.head.appendChild(css);
   }
   return true;
 }
+
+configEvent.subscribe(async ({ key }) => {
+  if (key === "funbox") {
+    const active = getActiveFunboxNames();
+    getAllFunboxes()
+      .filter((it) => !active.includes(it.name))
+      .forEach((it) => it.functions?.clearGlobal?.());
+
+    for (const fb of getActiveFunboxesWithFunction("applyGlobalCSS")) {
+      fb.functions.applyGlobalCSS();
+    }
+  }
+});

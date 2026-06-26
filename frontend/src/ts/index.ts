@@ -1,36 +1,50 @@
-import "../styles/vendor.scss";
-import "../styles/index.scss";
+// register signal tracking hook before any signals are created
+import "./dev/signal-tracker";
+
+//enable solidjs-devtools
+import "solid-devtools";
+
 import "./event-handlers/global";
-import "./event-handlers/footer";
 import "./event-handlers/keymap";
 import "./event-handlers/test";
-import "./event-handlers/about";
-import "./event-handlers/settings";
+import "./modals/google-sign-up";
 
-import * as Notifications from "./elements/notifications";
-import { setNotificationHandler } from "@monkeytype/local-storage-manager";
-
+import { init } from "./firebase";
+import * as Logger from "./utils/logger";
+import * as DB from "./db";
 import "./ui";
-import "./input/listeners";
-import "./ready";
-import "./controllers/route-controller";
-import "./utils/url-handler";
-import "./test/tts";
-import "./elements/psa";
-
-import { isDevEnvironment, addToGlobal } from "./utils/misc";
-import * as VersionButton from "./elements/version-button";
-import * as Focus from "./test/focus";
-import { getDevOptionsModal } from "./utils/async-modules";
-import { mountComponents } from "./components/mount";
-import { applyEngineSettings } from "./anim";
-import Config, { loadFromLocalStorage } from "./config";
-import * as TestStats from "./test/test-stats";
-import * as Replay from "./test/replay";
+import "./controllers/ad-controller";
+import { Config } from "./config/store";
 import * as TestTimer from "./test/test-timer";
 import * as Result from "./test/result";
-import * as Logger from "./utils/logger";
+import { onAuthStateChanged } from "./auth";
+import { enable } from "./legacy-states/glarses-mode";
+import "./test/caps-warning";
+import "./input/listeners";
+import "./controllers/route-controller";
+import "./elements/no-css";
+import { egVideoListener } from "./popups/video-ad-popup";
+import "./legacy-states/connection";
+import "./test/tts";
+import { addToGlobal } from "./utils/misc";
+import * as Focus from "./test/focus";
+import { fetchLatestVersion } from "./utils/version";
+import * as Sentry from "./sentry";
+import * as Cookies from "./cookies";
+import "./elements/psa";
+import "./controllers/url-handler";
+import "./modals/last-signed-out-result";
+import { applyEngineSettings } from "./anim";
 import { qs, qsa, qsr } from "./utils/dom";
+import { mountComponents } from "./components/mount";
+import "./ready";
+import { setVersion } from "./states/core";
+import { loadFromLocalStorage } from "./config/lifecycle";
+
+import "./input/hotkeys";
+import { showModal } from "./states/modals";
+import { lastEventLog } from "./test/test-state";
+import { buildEventLog } from "./test/events/data";
 
 // Lock Math.random
 Object.defineProperty(Math, "random", {
@@ -51,38 +65,43 @@ Object.defineProperty(window, "Math", {
   enumerable: true,
 });
 
-setNotificationHandler(Notifications.add);
-
-console.log("index.ts: applying engine settings");
 applyEngineSettings();
-console.log("index.ts: loading from localStorage");
 void loadFromLocalStorage();
-console.log("index.ts: updating version button");
-void VersionButton.update();
-console.log("index.ts: setting focus");
+void fetchLatestVersion().then((data) => {
+  if (data === null) return;
+  setVersion(data);
+});
+
 Focus.set(true, true);
-console.log("index.ts: ready import already done (line 23)");
+const accepted = Cookies.getAcceptedCookies();
+if (accepted === null) {
+  showModal("Cookies");
+}
+void init(onAuthStateChanged).then(() => {
+  if (accepted !== null) {
+    Cookies.activateWhatsAccepted();
+  }
+});
 
 addToGlobal({
+  snapshot: DB.getSnapshot,
   config: Config,
-  stats: TestStats.getStats,
-  replay: Replay.getReplayExport,
+  glarsesMode: enable,
   enableTimerDebug: TestTimer.enableTimerDebug,
   getTimerStats: TestTimer.getTimerStats,
   toggleSmoothedBurst: Result.toggleSmoothedBurst,
+  egVideoListener: egVideoListener,
   toggleDebugLogs: Logger.toggleDebugLogs,
+  toggleSentryDebug: Sentry.toggleDebug,
   qs: qs,
   qsa: qsa,
   qsr: qsr,
+  lastEventLog: () => {
+    console.log(lastEventLog);
+  },
+  currentEventLog: () => {
+    console.log(buildEventLog());
+  },
 });
-
-if (isDevEnvironment()) {
-  void import("jquery").then((jq) => {
-    addToGlobal({ $: jq.default });
-  });
-  void getDevOptionsModal().then((module) => {
-    module.appendButton();
-  });
-}
 
 mountComponents();

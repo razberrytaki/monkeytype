@@ -1,18 +1,22 @@
 import { FunboxWordsFrequency, Wordset } from "../wordset";
 import * as GetText from "../../utils/generate";
-import Config, { setConfig, toggleFunbox } from "../../config";
+import { Config } from "../../config/store";
+import { setConfig, toggleFunbox } from "../../config/setters";
 import * as Misc from "../../utils/misc";
 import * as Strings from "../../utils/strings";
 import { randomIntFromRange } from "@monkeytype/util/numbers";
 import * as Arrays from "../../utils/arrays";
 import { save } from "./funbox-memory";
-import * as TTSEvent from "../../observables/tts-event";
-import * as Notifications from "../../elements/notifications";
+import { ttsEvent } from "../../events/tts";
+import {
+  showNoticeNotification,
+  showErrorNotification,
+} from "../../states/notifications";
 import * as DDR from "../../utils/ddr";
 import * as TestWords from "../test-words";
-import * as TestInput from "../test-input";
+import { getCurrentInput, getInputForWord } from "../events/data";
 import * as LayoutfluidFunboxTimer from "./layoutfluid-funbox-timer";
-import * as KeymapEvent from "../../observables/keymap-event";
+import { highlight } from "../../events/keymap";
 import * as MemoryTimer from "./memory-funbox-timer";
 import { getPoem } from "../poetry";
 import * as JSONData from "../../utils/json-data";
@@ -23,6 +27,7 @@ import * as TestState from "../test-state";
 import { WordGenError } from "../../utils/word-gen-error";
 import { FunboxName, KeymapLayout, Layout } from "@monkeytype/schemas/configs";
 import { Language, LanguageObject } from "@monkeytype/schemas/languages";
+import { qs } from "../../utils/dom";
 
 export type FunboxFunctions = {
   getWord?: (wordset?: Wordset, wordIndex?: number) => string;
@@ -37,7 +42,6 @@ export type FunboxFunctions = {
   pullSection?: (language?: Language) => Promise<JSONData.Section | false>;
   handleSpace?: () => void;
   getEmulatedChar?: (event: KeyboardEvent) => string | null;
-  isCharCorrect?: (char: string, originalChar: string) => boolean;
   handleKeydown?: (event: KeyboardEvent) => Promise<void>;
   getResultContent?: () => string;
   start?: () => void;
@@ -47,23 +51,24 @@ export type FunboxFunctions = {
 };
 
 async function readAheadHandleKeydown(event: KeyboardEvent): Promise<void> {
-  const inputCurrentChar = (TestInput.input.current ?? "").slice(-1);
+  const currentInput = getCurrentInput();
+  const inputCurrentChar = currentInput.slice(-1);
   const wordCurrentChar = TestWords.words
-    .getCurrent()
-    .slice(TestInput.input.current.length - 1, TestInput.input.current.length);
+    .getCurrentText()
+    .slice(currentInput.length - 1, currentInput.length);
   const isCorrect = inputCurrentChar === wordCurrentChar;
 
   if (
     event.key === "Backspace" &&
     !isCorrect &&
-    (TestInput.input.current !== "" ||
-      TestInput.input.getHistory(TestState.activeWordIndex - 1) !==
-        TestWords.words.get(TestState.activeWordIndex - 1) ||
+    (currentInput !== "" ||
+      getInputForWord(TestState.activeWordIndex - 1) !==
+        TestWords.words.getText(TestState.activeWordIndex - 1) ||
       Config.freedomMode)
   ) {
-    $("#words").addClass("read_ahead_disabled");
+    qs("#words")?.addClass("read_ahead_disabled");
   } else if (event.key === " ") {
-    $("#words").removeClass("read_ahead_disabled");
+    qs("#words")?.removeClass("read_ahead_disabled");
   }
 }
 
@@ -79,7 +84,7 @@ class CharDistribution {
   public addChar(char: string): void {
     this.count++;
     if (char in this.chars) {
-      (this.chars[char] as number)++;
+      (this.chars[char] as number) += 1;
     } else {
       this.chars[char] = 1;
     }
@@ -226,10 +231,10 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
     },
     toggleScript(params: string[]): void {
       if (window.speechSynthesis === undefined) {
-        Notifications.add("Failed to load text-to-speech script", -1);
+        showErrorNotification("Failed to load text-to-speech script");
         return;
       }
-      if (params[0] !== undefined) void TTSEvent.dispatch(params[0]);
+      if (params[0] !== undefined) ttsEvent.dispatch(params[0]);
     },
   },
   arrows: {
@@ -254,42 +259,6 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
         return "→";
       }
       return null;
-    },
-    isCharCorrect(char: string, originalChar: string): boolean {
-      if (
-        (char === "a" ||
-          char === "ArrowLeft" ||
-          char === "j" ||
-          char === "←") &&
-        originalChar === "←"
-      ) {
-        return true;
-      }
-      if (
-        (char === "s" ||
-          char === "ArrowDown" ||
-          char === "k" ||
-          char === "↓") &&
-        originalChar === "↓"
-      ) {
-        return true;
-      }
-      if (
-        (char === "w" || char === "ArrowUp" || char === "i" || char === "↑") &&
-        originalChar === "↑"
-      ) {
-        return true;
-      }
-      if (
-        (char === "d" ||
-          char === "ArrowRight" ||
-          char === "l" ||
-          char === "→") &&
-        originalChar === "→"
-      ) {
-        return true;
-      }
-      return false;
     },
     getWordHtml(char: string, letterTag?: boolean): string {
       let retval = "";
@@ -420,7 +389,7 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
         const outOf: number = TestWords.words.length;
         const wordsPerLayout = Math.floor(outOf / layouts.length);
         const index = Math.floor(
-          (TestInput.input.getHistory().length + 1) / wordsPerLayout,
+          (TestState.activeWordIndex + 1) / wordsPerLayout,
         );
         const mod =
           wordsPerLayout - ((TestState.activeWordIndex + 1) % wordsPerLayout);
@@ -446,27 +415,14 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
           LayoutfluidFunboxTimer.hide();
         }
         setTimeout(() => {
-          void KeymapEvent.highlight(
-            TestWords.words.getCurrent().charAt(TestInput.input.current.length),
+          highlight(
+            TestWords.words.getCurrentText().charAt(getCurrentInput().length),
           );
         }, 1);
       }
     },
     getResultContent(): string {
       return Config.customLayoutfluid.join(" ");
-    },
-    restart(): void {
-      if (this.applyConfig) this.applyConfig();
-      setTimeout(() => {
-        void KeymapEvent.highlight(
-          TestWords.words
-            .getCurrent()
-            .substring(
-              TestInput.input.current.length,
-              TestInput.input.current.length + 1,
-            ),
-        );
-      }, 1);
     },
   },
   gibberish: {
@@ -510,7 +466,7 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
   },
   memory: {
     applyConfig(): void {
-      $("#wordsWrapper").addClass("hidden");
+      qs("#wordsWrapper")?.hide();
       setConfig("showAllLines", true, {
         nosave: true,
       });
@@ -529,11 +485,11 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
     },
     start(): void {
       MemoryTimer.reset();
-      $("#words").addClass("hidden");
+      qs("#words")?.hide();
     },
     restart(): void {
       MemoryTimer.start(Math.round(Math.pow(TestWords.words.length, 1.2)));
-      $("#words").removeClass("hidden");
+      qs("#words")?.show();
       if (Config.keymapMode === "next") {
         setConfig("keymapMode", "react");
       }
@@ -643,7 +599,7 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
   underscore_spaces: {
     alterText(word: string, wordIndex: number, limit: number): string {
       if (wordIndex === limit - 1) return word; // don't add underscore to the last word
-      return word + "_";
+      return `${word}_`;
     },
   },
   crt: {
@@ -653,33 +609,33 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
       );
       if (isSafari) {
         //Workaround for bug https://bugs.webkit.org/show_bug.cgi?id=256171 in Safari 16.5 or earlier
-        const versionMatch = navigator.userAgent.match(
-          /.*Version\/([0-9]*)\.([0-9]*).*/,
+        const versionMatch = /.*Version\/([0-9]*)\.([0-9]*).*/.exec(
+          navigator.userAgent,
         );
         const mainVersion =
           versionMatch !== null ? parseInt(versionMatch[1] ?? "0") : 0;
         const minorVersion =
           versionMatch !== null ? parseInt(versionMatch[2] ?? "0") : 0;
         if (mainVersion <= 16 && minorVersion <= 5) {
-          Notifications.add(
+          showNoticeNotification(
             "CRT is not available on Safari 16.5 or earlier.",
-            0,
             {
-              duration: 5,
+              durationMs: 5000,
             },
           );
           toggleFunbox("crt");
           return;
         }
       }
-      $("body").append('<div id="scanline" />');
-      $("body").addClass("crtmode");
-      $("#globalFunBoxTheme").attr("href", `funbox/crt.css`);
+      qs("#scanline")?.remove();
+      qs("body")?.appendHtml('<div id="scanline" />');
+      qs("body")?.addClass("crtmode");
+      qs("#globalFunBoxTheme")?.setAttribute("href", `funbox/crt.css`);
     },
     clearGlobal(): void {
-      $("#scanline").remove();
-      $("body").removeClass("crtmode");
-      $("#globalFunBoxTheme").attr("href", ``);
+      qs("#scanline")?.remove();
+      qs("body")?.removeClass("crtmode");
+      qs("#globalFunBoxTheme")?.setAttribute("href", ``);
     },
   },
   ALL_CAPS: {
@@ -691,9 +647,8 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
     async withWords(_words) {
       const promises = Config.customPolyglot.map(async (language) =>
         JSONData.getLanguage(language).catch(() => {
-          Notifications.add(
+          showNoticeNotification(
             `Failed to load language: ${language}. It will be ignored.`,
-            0,
           );
           return null;
         }),
@@ -718,13 +673,12 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
           nosave: true,
         });
         toggleFunbox("polyglot", true);
-        Notifications.add(
+        showNoticeNotification(
           `Disabled polyglot funbox because only one valid language was found. Check your polyglot languages config (${Config.customPolyglot.join(
             ", ",
           )}).`,
-          0,
           {
-            duration: 7,
+            durationMs: 7000,
           },
         );
         throw new WordGenError("");
@@ -742,10 +696,9 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
         const fallbackLanguage =
           languages[0]?.name ?? (allRightToLeft ? "arabic" : "english");
         setConfig("language", fallbackLanguage);
-        Notifications.add(
+        showNoticeNotification(
           `Language direction conflict: switched to ${fallbackLanguage} for consistency.`,
-          0,
-          { duration: 5 },
+          { durationMs: 5000 },
         );
         throw new WordGenError("");
       }
@@ -756,7 +709,7 @@ const list: Partial<Record<FunboxName, FunboxFunctions>> = {
           lang.name,
           {
             noLazyMode: lang.noLazyMode,
-            ligatures: lang.ligatures,
+            joiningScript: lang.joiningScript,
             rightToLeft: lang.rightToLeft,
             additionalAccents: lang.additionalAccents,
           },

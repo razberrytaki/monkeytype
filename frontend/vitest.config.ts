@@ -6,11 +6,19 @@ import solidPlugin from "vite-plugin-solid";
 const plugins = [
   languageHashes({ skip: true }),
   envConfig({ isDevelopment: true, clientVersion: "TESTING", env: {} }),
-  solidPlugin(),
+  solidPlugin({ hot: false }),
+];
+
+const tanstackSolidNoExternal: (string | RegExp)[] = [
+  "@solidjs/meta",
+  /@tanstack\/solid-.*/,
 ];
 
 export const projects: UserWorkspaceConfig[] = [
   {
+    ssr: {
+      noExternal: tanstackSolidNoExternal,
+    },
     test: {
       name: { label: "unit", color: "blue" },
       include: ["__tests__/**/*.spec.ts", "__tests__/**/*.test.ts"],
@@ -18,7 +26,6 @@ export const projects: UserWorkspaceConfig[] = [
       environment: "happy-dom",
       globalSetup: "__tests__/global-setup.ts",
       setupFiles: [
-        "__tests__/__harness__/setup-jquery.ts",
         "__tests__/__harness__/mock-dom.ts",
         "__tests__/__harness__/mock-firebase.ts",
         "__tests__/__harness__/mock-env-config.ts",
@@ -27,24 +34,29 @@ export const projects: UserWorkspaceConfig[] = [
     plugins,
   },
   {
+    ssr: {
+      noExternal: tanstackSolidNoExternal,
+    },
     test: {
       name: { label: "jsdom", color: "yellow" },
       include: ["__tests__/**/*.jsdom-spec.ts"],
       environment: "jsdom",
       globalSetup: "__tests__/global-setup.ts",
-      setupFiles: ["__tests__/__harness__/setup-jquery.ts"],
     },
     plugins,
   },
   {
+    ssr: {
+      noExternal: tanstackSolidNoExternal,
+    },
     test: {
       name: { label: "jsx", color: "green" },
       include: ["__tests__/**/*.spec.tsx"],
       environment: "jsdom",
       globalSetup: "__tests__/global-setup.ts",
       setupFiles: [
-        "__tests__/__harness__/setup-jquery.ts",
         "__tests__/__harness__/setup-jsx.ts",
+        "__tests__/__harness__/mock-dom.ts",
       ],
       globals: true,
     },
@@ -53,7 +65,7 @@ export const projects: UserWorkspaceConfig[] = [
 ];
 export default defineConfig({
   test: {
-    projects: projects,
+    projects: projects as never,
     coverage: {
       include: ["**/*.ts", "**/*.tsx"],
     },

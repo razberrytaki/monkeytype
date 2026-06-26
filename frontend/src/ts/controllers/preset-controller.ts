@@ -1,17 +1,21 @@
-import Config, { applyConfig, saveFullConfigToLocalStorage } from "../config";
+import { Config } from "../config/store";
+import { applyConfig } from "../config/lifecycle";
 import * as DB from "../db";
-import * as Notifications from "../elements/notifications";
+import { showSuccessNotification } from "../states/notifications";
 import * as TestLogic from "../test/test-logic";
-import * as TagController from "./tag-controller";
-import type { Preset } from "@monkeytype/schemas/presets";
-import type { SnapshotPreset } from "../constants/default-snapshot";
+import {
+  clearActiveTags,
+  setTagActive,
+  saveActiveToLocalStorage,
+} from "../collections/tags";
+import { saveFullConfigToLocalStorage } from "../config/persistence";
+import { __nonReactive, type PresetItem } from "../collections/presets";
 
 export async function apply(_id: string): Promise<void> {
-  // oxlint-disable-next-line strict-boolean-expressions
   const snapshot = DB.getSnapshot();
   if (!snapshot) return;
 
-  const presetToApply = snapshot.presets?.find((preset) => preset._id === _id);
+  const presetToApply = __nonReactive.getPreset(_id);
   if (presetToApply === undefined) {
     return;
   }
@@ -29,36 +33,19 @@ export async function apply(_id: string): Promise<void> {
     !isPartialPreset(presetToApply) ||
     presetToApply.settingGroups?.includes("behavior")
   ) {
-    TagController.clear(true);
+    await clearActiveTags({ noSave: true });
     if (presetToApply.config.tags) {
       for (const tagId of presetToApply.config.tags) {
-        TagController.toggle(tagId, false);
+        await setTagActive({ tagId, active: true });
       }
-      TagController.saveActiveToLocalStorage();
+      saveActiveToLocalStorage();
     }
   }
   TestLogic.restart();
-  Notifications.add("Preset applied", 1, {
-    duration: 2,
-  });
+  showSuccessNotification("Preset applied", { durationMs: 2000 });
   saveFullConfigToLocalStorage();
 }
-function isPartialPreset(preset: SnapshotPreset): boolean {
+
+function isPartialPreset(preset: PresetItem): boolean {
   return preset.settingGroups !== undefined && preset.settingGroups !== null;
-}
-
-export async function getPreset(_id: string): Promise<Preset | undefined> {
-  // oxlint-disable-next-line strict-boolean-expressions
-  const snapshot = DB.getSnapshot();
-  if (!snapshot) {
-    return;
-  }
-
-  const preset = snapshot.presets?.find((preset) => preset._id === _id);
-
-  if (preset === undefined) {
-    Notifications.add("Preset not found", 0);
-    return;
-  }
-  return preset;
 }

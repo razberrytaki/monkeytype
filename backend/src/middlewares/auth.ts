@@ -12,14 +12,13 @@ import {
 } from "../utils/prometheus";
 import crypto from "crypto";
 import { performance } from "perf_hooks";
-import { TsRestRequestHandler } from "@ts-rest/express";
 import { AppRoute, AppRouter } from "@ts-rest/core";
 import {
   EndpointMetadata,
   RequestAuthenticationOptions,
 } from "@monkeytype/contracts/util/api";
 import { Configuration } from "@monkeytype/schemas/configuration";
-import { getMetadata } from "./utility";
+import { AsyncTsRestRequestHandler, getMetadata } from "./utility";
 import { TsRestRequestWithContext } from "../api/types";
 
 export type DecodedToken = {
@@ -43,7 +42,7 @@ const DEFAULT_OPTIONS: RequestAuthenticationOptions = {
  */
 export function authenticateTsRestRequest<
   T extends AppRouter | AppRoute,
->(): TsRestRequestHandler<T> {
+>(): AsyncTsRestRequestHandler<T> {
   return async (
     req: TsRestRequestWithContext,
     _res: Response,
@@ -51,8 +50,7 @@ export function authenticateTsRestRequest<
   ): Promise<void> => {
     const options = {
       ...DEFAULT_OPTIONS,
-      ...((getMetadata(req)["authenticationOptions"] ??
-        {}) as EndpointMetadata),
+      ...((getMetadata(req).authenticationOptions ?? {}) as EndpointMetadata),
     };
 
     const startTime = performance.now();
@@ -359,7 +357,7 @@ export function authenticateGithubWebhook(
     }
     throw new MonkeyError(
       500,
-      "Failed to authenticate Github webhook: " + (error as Error).message,
+      `Failed to authenticate Github webhook: ${(error as Error).message}`,
     );
   }
 }

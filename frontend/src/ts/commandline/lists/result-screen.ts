@@ -1,14 +1,17 @@
 import * as TestLogic from "../../test/test-logic";
 import * as TestUI from "../../test/test-ui";
 import * as PractiseWordsModal from "../../modals/practise-words";
-import * as Notifications from "../../elements/notifications";
-import * as TestInput from "../../test/test-input";
+import {
+  showErrorNotification,
+  showSuccessNotification,
+} from "../../states/notifications";
 import * as TestState from "../../test/test-state";
 import * as TestWords from "../../test/test-words";
-import Config from "../../config";
+import { Config } from "../../config/store";
 import * as PractiseWords from "../../test/practise-words";
 import { Command, CommandsSubgroup } from "../types";
 import * as TestScreenshot from "../../test/test-screenshot";
+import { getInputHistory } from "../../test/events/stats";
 
 const practiceSubgroup: CommandsSubgroup = {
   title: "Practice words...",
@@ -136,18 +139,23 @@ const commands: Command[] = [
     display: "Copy words to clipboard",
     icon: "fa-copy",
     exec: (): void => {
-      const words = (
+      if (TestState.lastEventLog === null) {
+        showErrorNotification("No event log found!");
+        return;
+      }
+
+      const inputHistory = getInputHistory(TestState.lastEventLog);
+      const words =
         Config.mode === "zen"
-          ? TestInput.input.getHistory()
-          : TestWords.words.list.slice(0, TestInput.input.getHistory().length)
-      ).join(" ");
+          ? inputHistory.join("")
+          : TestWords.words.list.slice(0, inputHistory.length).join(" ");
 
       navigator.clipboard.writeText(words).then(
         () => {
-          Notifications.add("Copied to clipboard", 1);
+          showSuccessNotification("Copied to clipboard");
         },
         () => {
-          Notifications.add("Failed to copy!", -1);
+          showErrorNotification("Failed to copy!");
         },
       );
     },

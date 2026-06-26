@@ -17,6 +17,7 @@ import {
 import * as Prometheus from "../../src/utils/prometheus";
 import { TsRestRequestWithContext } from "../../src/api/types";
 import { enableMonkeyErrorExpects } from "../__testData__/monkey-error";
+import { Context } from "../../src/middlewares/context";
 
 enableMonkeyErrorExpects();
 const mockDecodedToken: DecodedIdToken = {
@@ -72,7 +73,7 @@ describe("middlewares/auth", () => {
       json: vi.fn(),
     };
     nextFunction = vi.fn((error) => {
-      if (error) {
+      if (error !== undefined) {
         throw error;
       }
       return "Next function called";
@@ -104,7 +105,7 @@ describe("middlewares/auth", () => {
       );
 
       //WHEN
-      await expect(() =>
+      await expect(async () =>
         authenticate({}, { requireFreshToken: true }),
       ).rejects.toMatchMonkeyError(expectedError);
 
@@ -149,28 +150,27 @@ describe("middlewares/auth", () => {
     });
     it("should fail with apeKey if apeKey is not supported", async () => {
       //WHEN
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           { headers: { authorization: "ApeKey aWQua2V5" } },
           { acceptApeKeys: false },
         ),
-      ).rejects.toThrowError("This endpoint does not accept ApeKeys");
+      ).rejects.toThrow("This endpoint does not accept ApeKeys");
 
       //THEN
     });
     it("should fail with apeKey if apeKeys are disabled", async () => {
       //GIVEN
 
-      //@ts-expect-error
-      mockRequest.ctx.configuration.apeKeys.acceptKeys = false;
+      (mockRequest.ctx as Context).configuration.apeKeys.acceptKeys = false;
 
       //WHEN
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           { headers: { authorization: "ApeKey aWQua2V5" } },
           { acceptApeKeys: false },
         ),
-      ).rejects.toThrowError("ApeKeys are not being accepted at this time");
+      ).rejects.toThrow("ApeKeys are not being accepted at this time");
 
       //THEN
     });
@@ -246,14 +246,14 @@ describe("middlewares/auth", () => {
       isDevModeMock.mockReturnValue(false);
 
       //WHEN / THEN
-      await expect(() =>
+      await expect(async () =>
         authenticate({ headers: { authorization: "Uid 123" } }),
       ).rejects.toMatchMonkeyError(
         new MonkeyError(401, "Bearer type uid is not supported"),
       );
     });
     it("should fail without authentication", async () => {
-      await expect(() => authenticate({ headers: {} })).rejects.toThrowError(
+      await expect(async () => authenticate({ headers: {} })).rejects.toThrow(
         "Unauthorized\nStack: endpoint: /api/v1 no authorization header found",
       );
 
@@ -267,9 +267,9 @@ describe("middlewares/auth", () => {
       );
     });
     it("should fail with empty authentication", async () => {
-      await expect(() =>
+      await expect(async () =>
         authenticate({ headers: { authorization: "" } }),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         "Unauthorized\nStack: endpoint: /api/v1 no authorization header found",
       );
 
@@ -283,9 +283,9 @@ describe("middlewares/auth", () => {
       );
     });
     it("should fail with missing authentication token", async () => {
-      await expect(() =>
+      await expect(async () =>
         authenticate({ headers: { authorization: "Bearer" } }),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         "Missing authentication token\nStack: authenticateWithAuthHeader",
       );
 
@@ -299,9 +299,9 @@ describe("middlewares/auth", () => {
       );
     });
     it("should fail with unknown authentication scheme", async () => {
-      await expect(() =>
+      await expect(async () =>
         authenticate({ headers: { authorization: "unknown format" } }),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         'Unknown authentication scheme\nStack: The authentication scheme "unknown" is not implemented',
       );
 
@@ -378,9 +378,7 @@ describe("middlewares/auth", () => {
     });
     it("should allow with apeKey if apeKeys are disabled on dev public endpoint", async () => {
       //GIVEN
-
-      //@ts-expect-error
-      mockRequest.ctx.configuration.apeKeys.acceptKeys = false;
+      (mockRequest.ctx as Context).configuration.apeKeys.acceptKeys = false;
 
       //WHEN
       const result = await authenticate(
@@ -415,9 +413,9 @@ describe("middlewares/auth", () => {
       isDevModeMock.mockReturnValue(false);
 
       //THEN
-      await expect(() =>
+      await expect(async () =>
         authenticate({ headers: {} }, { isPublicOnDev: true }),
-      ).rejects.toThrowError("Unauthorized");
+      ).rejects.toThrow("Unauthorized");
     });
     it("should allow with apeKey on dev public endpoint in production", async () => {
       //WHEN
@@ -468,7 +466,7 @@ describe("middlewares/auth", () => {
       vi.stubEnv("GITHUB_WEBHOOK_SECRET", "GITHUB_WEBHOOK_SECRET");
       timingSafeEqualMock.mockReturnValue(false);
 
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           {
             headers: { "x-hub-signature-256": "the-signature" },
@@ -476,7 +474,7 @@ describe("middlewares/auth", () => {
           },
           { isGithubWebhook: true },
         ),
-      ).rejects.toThrowError("Github webhook signature invalid");
+      ).rejects.toThrow("Github webhook signature invalid");
 
       //THEH
       expect(prometheusIncrementAuthMock).not.toHaveBeenCalled();
@@ -489,7 +487,7 @@ describe("middlewares/auth", () => {
     });
     it("should fail without header when endpoint is using githubwebhook", async () => {
       vi.stubEnv("GITHUB_WEBHOOK_SECRET", "GITHUB_WEBHOOK_SECRET");
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           {
             headers: {},
@@ -497,7 +495,7 @@ describe("middlewares/auth", () => {
           },
           { isGithubWebhook: true },
         ),
-      ).rejects.toThrowError("Missing Github signature header");
+      ).rejects.toThrow("Missing Github signature header");
 
       //THEH
       expect(prometheusIncrementAuthMock).not.toHaveBeenCalled();
@@ -510,7 +508,7 @@ describe("middlewares/auth", () => {
     });
     it("should fail with missing GITHUB_WEBHOOK_SECRET when endpoint is using githubwebhook", async () => {
       vi.stubEnv("GITHUB_WEBHOOK_SECRET", "");
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           {
             headers: { "x-hub-signature-256": "the-signature" },
@@ -518,7 +516,7 @@ describe("middlewares/auth", () => {
           },
           { isGithubWebhook: true },
         ),
-      ).rejects.toThrowError("Missing Github Webhook Secret");
+      ).rejects.toThrow("Missing Github Webhook Secret");
 
       //THEH
       expect(prometheusIncrementAuthMock).not.toHaveBeenCalled();
@@ -534,7 +532,7 @@ describe("middlewares/auth", () => {
       timingSafeEqualMock.mockImplementation(() => {
         throw new Error("could not validate");
       });
-      await expect(() =>
+      await expect(async () =>
         authenticate(
           {
             headers: { "x-hub-signature-256": "the-signature" },
@@ -542,7 +540,7 @@ describe("middlewares/auth", () => {
           },
           { isGithubWebhook: true },
         ),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         "Failed to authenticate Github webhook: could not validate",
       );
 

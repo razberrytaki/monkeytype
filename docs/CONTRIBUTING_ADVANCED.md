@@ -38,7 +38,7 @@ If you use `nvm` (if you use Windows, use [nvm-windows](https://github.com/corey
 
 Alternatively, you can navigate to the NodeJS [website](https://nodejs.org/en/) to download it from there.
 
-For package management, we use `pnpm` instead of `npm` or `yarn`. You can install it by running `npm i -g pnpm@9.6.0`. This will install `pnpm` globally on your machine.
+For package management, we use `pnpm` instead of `npm` or `yarn`. You can install it by running `npm i -g pnpm@10.28.1`. This will install `pnpm` globally on your machine.
 
 ### Docker (Recommended but Optional)
 
@@ -102,6 +102,8 @@ Follow these steps if you want to work on anything involving the database/accoun
 
 1. Inside the backend folder, copy `example.env` to `.env` in the same directory.
 
+   - The backend Docker scripts read port bindings from this file. If `27017`, `6379`, or `5005` are already in use on your machine, update `DOCKER_DB_PORT`, `DOCKER_REDIS_PORT`, and `DOCKER_SERVER_PORT` before starting Docker.
+
 2. Setup the database server
 
 | Manual                                                                                                                                                                                                                                                         | Docker (recommended)                                                                                                                                                        |
@@ -139,7 +141,7 @@ npm run dev
 | ---------------- | ------------------------------- |
 | `npm run dev-fe` | `cd frontend && npm run docker` |
 
-These commands will start a local development website on [port 3000](http://localhost:3000) and a local development server on [port 5005](http://localhost:5005). They will automatically rebuild the website/server when you make changes in the `src/` directory. Use <kbd>Ctrl+C</kbd> to stop them.
+By default, these commands will start a local development website on [port 3000](http://localhost:3000) and a local development server on [port 5005](http://localhost:5005). They will automatically rebuild the website/server when you make changes in the `src/` directory. Use <kbd>Ctrl+C</kbd> to stop them.
 
 > [!NOTE]
 > Rebuilding doesn't happen instantaneously and depends on your machine, so be patient for changes to appear.
@@ -148,9 +150,7 @@ If you are on a UNIX system and you get a spawn error, run npm with `sudo`.
 
 ## Standards and Guidelines
 
-Code formatting is enforced by [Prettier](https://prettier.io/docs/en/install.html), which automatically runs every time you make a commit.
-
-We are currently in the process of converting from JQuery to vanilla JS. When submitting new code, please use the `qs`, `qsa` and `qsr` helper functions. These return a class with a lot of JQuery-like methods. You can read how they work and import them from `frontend/src/ts/utils/dom.ts`.
+Code formatting and linting is enforced by [Oxc (Oxfmt and Oxlint)](https://github.com/oxc-project/oxc), which automatically runs every time you make a commit.
 
 For guidelines on commit messages, adding themes, languages, or quotes, please refer to [CONTRIBUTING.md](./CONTRIBUTING.md). Following these guidelines will increase the chances of getting your change accepted.
 

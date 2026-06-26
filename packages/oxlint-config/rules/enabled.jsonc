@@ -7,6 +7,9 @@
         "argsIgnorePattern": "^(_|e|event)",
         "caughtErrorsIgnorePattern": "^(_|e|error)",
         "varsIgnorePattern": "^_",
+        "fix": {
+          "imports": "safe-fix",
+        },
       },
     ],
     "no-var": "error",
@@ -80,5 +83,7 @@
     "unicorn/prefer-structured-clone": "error",
     "curly": ["error", "multi-line", "consistent"],
     "no-sequences": "error",
+    "import/no-cycle": "error",
+    "prefer-template": "error",
   },
 }

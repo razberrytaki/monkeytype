@@ -1,12 +1,19 @@
 import * as TestWords from "./test-words";
-import * as Notifications from "../elements/notifications";
-import Config, { setConfig } from "../config";
+import { showNoticeNotification } from "../states/notifications";
+
+import { Config } from "../config/store";
+import { setConfig } from "../config/setters";
 import * as CustomText from "./custom-text";
-import * as TestInput from "./test-input";
-import * as ConfigEvent from "../observables/config-event";
-import { setCustomTextName } from "../states/custom-text-name";
+import { configEvent } from "../events/config";
 import { Mode } from "@monkeytype/schemas/shared";
 import { CustomTextSettings } from "@monkeytype/schemas/results";
+import {
+  getInputHistory,
+  getMissedWords,
+  getWordBurstHistory,
+} from "./events/stats";
+import { setCustomTextIndicator } from "../states/core";
+import { lastEventLog } from "./test-state";
 
 type Before = {
   mode: Mode | null;
@@ -26,6 +33,7 @@ export function init(
   missed: "off" | "words" | "biwords",
   slow: boolean,
 ): boolean {
+  if (lastEventLog === null) return false;
   if (Config.mode === "zen") return false;
   let limit;
   if ((missed === "words" && !slow) || (missed === "off" && slow)) {
@@ -35,11 +43,13 @@ export function init(
     limit = 10;
   }
 
+  const missedWords = getMissedWords(lastEventLog);
+
   // missed word, previous word, count
   let sortableMissedWords: [string, number][] = [];
   if (missed === "words") {
-    Object.keys(TestInput.missedWords).forEach((missedWord) => {
-      const missedWordCount = TestInput.missedWords[missedWord];
+    Object.keys(missedWords).forEach((missedWord) => {
+      const missedWordCount = missedWords[missedWord];
       if (missedWordCount !== undefined) {
         sortableMissedWords.push([missedWord, missedWordCount]);
       }
@@ -53,18 +63,17 @@ export function init(
   let sortableMissedBiwords: [string, string, number][] = [];
   if (missed === "biwords") {
     for (let i = 0; i < TestWords.words.length; i++) {
-      const missedWord = TestWords.words.get(i);
-      const missedWordCount = TestInput.missedWords[missedWord];
+      const missedWord = TestWords.words.getText(i);
+
+      if (missedWord === undefined) continue; // won't happen, but ts complains
+
+      const missedWordCount = missedWords[missedWord];
       if (missedWordCount !== undefined) {
-        if (i === 0) {
-          sortableMissedBiwords.push([missedWord, "", missedWordCount]);
-        } else {
-          sortableMissedBiwords.push([
-            missedWord,
-            TestWords.words.get(i - 1),
-            missedWordCount,
-          ]);
-        }
+        sortableMissedBiwords.push([
+          missedWord,
+          TestWords.words.getText(i - 1) ?? "",
+          missedWordCount,
+        ]);
       }
     }
     sortableMissedBiwords.sort((a, b) => {
@@ -78,20 +87,19 @@ export function init(
       (missed === "biwords" && sortableMissedBiwords.length === 0)) &&
     !slow
   ) {
-    Notifications.add("You haven't missed any words", 0);
+    showNoticeNotification("You haven't missed any words");
     return false;
   }
 
   let sortableSlowWords: [string, number][] = [];
   if (slow) {
     const typedWords = TestWords.words
-      .get()
-      .slice(0, TestInput.input.getHistory().length - 1);
+      .getText()
+      .slice(0, getInputHistory(lastEventLog).length - 1);
 
-    sortableSlowWords = typedWords.map((e, i) => [
-      e,
-      TestInput.burstHistory[i] ?? 0,
-    ]);
+    const burstHistory = getWordBurstHistory(lastEventLog);
+
+    sortableSlowWords = typedWords.map((e, i) => [e, burstHistory[i] ?? 0]);
     sortableSlowWords.sort((a, b) => {
       return a[1] - b[1];
     });
@@ -100,7 +108,7 @@ export function init(
       Math.min(limit, Math.round(typedWords.length * 0.2)),
     );
     if (sortableSlowWords.length === 0) {
-      Notifications.add("Test too short to classify slow words.", 0);
+      showNoticeNotification("Test too short to classify slow words.");
     }
   }
 
@@ -113,7 +121,7 @@ export function init(
     sortableMissedBiwords.length === 0 &&
     sortableSlowWords.length === 0
   ) {
-    Notifications.add("Could not start a new custom test", 0);
+    showNoticeNotification("Could not start a new custom test");
     return false;
   }
 
@@ -127,7 +135,7 @@ export function init(
   sortableMissedBiwords.forEach((missedBiwords) => {
     for (let i = 0; i < missedBiwords[2]; i++) {
       if (missedBiwords[1] !== "") {
-        newCustomText.push(missedBiwords[1] + " " + missedBiwords[0]);
+        newCustomText.push(`${missedBiwords[1]} ${missedBiwords[0]}`);
       } else {
         newCustomText.push(missedBiwords[0]);
       }
@@ -163,7 +171,7 @@ export function init(
       5,
   );
 
-  setCustomTextName("practise", undefined);
+  setCustomTextIndicator({ name: "practice", isLong: false });
 
   before.mode = mode;
   before.punctuation = punctuation;
@@ -180,6 +188,6 @@ export function resetBefore(): void {
   before.customText = null;
 }
 
-ConfigEvent.subscribe(({ key }) => {
+configEvent.subscribe(({ key }) => {
   if (key === "mode") resetBefore();
 });

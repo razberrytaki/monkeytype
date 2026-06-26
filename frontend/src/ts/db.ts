@@ -1,267 +1,453 @@
-/**
- * @deprecated Database sync removed in privacy fork
- * This file is a stub to prevent build errors.
- * Data is now persisted using localStorage.
- */
+import Ape from "./ape";
+import { showErrorNotification } from "./states/notifications";
+import { isAuthenticated } from "./states/core";
+import * as Dates from "date-fns";
+import {
+  TestActivityCalendar,
+  ModifiableTestActivityCalendar,
+} from "./elements/test-activity-calendar";
+import { showLoaderBar, hideLoaderBar } from "./states/loader-bar";
+import { Badge } from "@monkeytype/schemas/users";
+import { Difficulty } from "@monkeytype/schemas/configs";
+import {
+  Mode,
+  Mode2,
+  PersonalBest,
+  PersonalBests,
+} from "@monkeytype/schemas/shared";
+import {
+  getDefaultSnapshot,
+  Snapshot,
+  SnapshotResult,
+} from "./constants/default-snapshot";
+import { getFirstDayOfTheWeek } from "./utils/date-and-time";
+import { Language } from "@monkeytype/schemas/languages";
+import { authEvent } from "./events/auth";
+import { configurationPromise } from "./ape/server-configuration";
+import { insertLocalResult } from "./collections/results";
+import {
+  setLastResult,
+  _setSnapshot as setSolidSnapshot,
+} from "./states/snapshot";
+import { XpBreakdown } from "@monkeytype/schemas/results";
+import { setXpBarData } from "./states/header";
+import { FunboxMetadata } from "@monkeytype/funbox";
+import { __nonReactive } from "./collections/tags";
+import { fetchUserFromApi } from "./ape/user";
+import { SnapshotInitError } from "./utils/snapshot-init-error";
+import { updateTagsInFilterStorage } from "./states/result-filters";
 
-import storageManager from "@monkeytype/local-storage-manager";
-import type { Snapshot as DefaultSnapshot } from "./constants/default-snapshot";
+let dbSnapshot: Snapshot | undefined;
+const firstDayOfTheWeek = getFirstDayOfTheWeek();
 
-type CustomTheme = {
-  _id: string;
-  name: string;
-  colors: [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-};
-
-export type Snapshot = DefaultSnapshot & {
-  typingStats: {
-    testsCompleted: number;
-    testsStarted: number;
-    timeTyping: number;
-  };
-  customThemes: CustomTheme[];
-};
-
-export async function initSnapshot(): Promise<false> {
-  return false;
+export function getSnapshot(): Snapshot | undefined {
+  return dbSnapshot;
 }
 
-export function getSnapshot(): Snapshot | null {
-  return {
-    typingStats: {
-      testsCompleted: 0,
-      testsStarted: 0,
-      timeTyping: 0,
-    },
-    customThemes: [],
-    connections: {},
-    uid: "guest",
-    name: "Guest",
-    email: "guest@local",
-    addedAt: Date.now(),
-    tags: [],
-    themes: [],
-    presets: [],
-    resultFilters: [],
-    favorites: [],
-    banned: false,
-    personalBests: {},
-    customBackground: null,
-    customLayout: "default",
-    customThemeRefreshedOn: 0,
-    discordId: "",
-    discordAvatar: "",
-    inventory: {
-      badges: [],
-    },
-    xp: 0,
-    streak: 0,
-    maxStreak: 0,
-    testActivity: [],
-    startedTests: 0,
-    completedTests: 0,
-  } as unknown as Snapshot;
+export function setSnapshot(
+  newSnapshot: Snapshot | undefined,
+  options?: { dispatchEvent?: boolean },
+): void {
+  const originalBanned = dbSnapshot?.banned;
+  const originalVerified = dbSnapshot?.verified;
+  const lbOptOut = dbSnapshot?.lbOptOut;
+
+  //not allowing user to override these values i guess?
+  try {
+    delete newSnapshot?.banned;
+  } catch {}
+  try {
+    delete newSnapshot?.verified;
+  } catch {}
+  try {
+    delete newSnapshot?.lbOptOut;
+  } catch {}
+  dbSnapshot = newSnapshot;
+  if (dbSnapshot) {
+    dbSnapshot.banned = originalBanned;
+    dbSnapshot.verified = originalVerified;
+    dbSnapshot.lbOptOut = lbOptOut;
+  }
+
+  if (options?.dispatchEvent !== false) {
+    authEvent.dispatch({ type: "snapshotUpdated", data: { isInitial: false } });
+  }
+
+  setSolidSnapshot(newSnapshot);
 }
 
-export async function clearLocalDB(): Promise<void> {
-  // No-op - data stored in localStorage
-}
+export async function initSnapshot(): Promise<Snapshot | false> {
+  //send api request with token that returns tags, presets, and data needed for snap
+  const snap = getDefaultSnapshot();
+  await configurationPromise;
 
-export async function saveConfig(_config: unknown): Promise<void> {
-  // No-op - config saved via localStorage
-}
+  try {
+    if (!isAuthenticated()) return false;
 
-export async function resetConfig(): Promise<void> {
-  // No-op
-}
+    const [userData] = await Promise.all([fetchUserFromApi()]);
 
-export async function getUserAverage10(
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
-): Promise<[number, number] | null> {
-  const key = `${_mode}_${_mode2}_${_punctuation}_${_numbers}_${_language}_${_difficulty}`;
-  const avg = storageManager.getAverages()[key];
-  if (!avg) return null;
-  return [avg.wpm, avg.acc];
-}
+    if (userData === null || userData === undefined) {
+      throw new SnapshotInitError(
+        `Request was successful but user data is null/undefined`,
+        200,
+      );
+    }
 
-export async function getLocalPB(
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
-  _funbox: string[],
-): Promise<number | null> {
-  return (
-    storageManager.getPersonalBest()?.[
-      `${_mode}_${_mode2}_${_punctuation}_${_numbers}_${_language}_${_difficulty}_${_lazyMode}`
-    ] ?? null
+    snap.name = userData.name;
+    snap.personalBests = userData.personalBests;
+    snap.personalBests ??= {
+      time: {},
+      words: {},
+      quote: {},
+      zen: {},
+      custom: {},
+    };
+
+    for (const mode of ["time", "words", "quote", "zen", "custom"]) {
+      snap.personalBests[mode as keyof PersonalBests] ??= {};
+    }
+
+    snap.banned = userData.banned;
+    snap.lbOptOut = userData.lbOptOut;
+    snap.verified = userData.verified;
+    snap.discordId = userData.discordId;
+    snap.discordAvatar = userData.discordAvatar;
+    snap.needsToChangeName = userData.needsToChangeName;
+    snap.typingStats = {
+      timeTyping: userData.timeTyping ?? 0,
+      startedTests: userData.startedTests ?? 0,
+      completedTests: userData.completedTests ?? 0,
+    };
+    snap.quoteMod = userData.quoteMod;
+    snap.favoriteQuotes = userData.favoriteQuotes ?? {};
+    snap.quoteRatings = userData.quoteRatings;
+    snap.details = userData.profileDetails;
+    snap.addedAt = userData.addedAt;
+    snap.inventory = userData.inventory;
+    snap.xp = userData.xp ?? 0;
+    snap.inboxUnreadSize = userData.inboxUnreadSize ?? 0;
+    snap.streak = userData?.streak?.length ?? 0;
+    snap.maxStreak = userData?.streak?.maxLength ?? 0;
+    snap.isPremium = userData?.isPremium ?? false;
+    snap.allTimeLbs = userData.allTimeLbs;
+
+    if (userData.testActivity !== undefined) {
+      snap.testActivity = new ModifiableTestActivityCalendar(
+        userData.testActivity.testsByDays,
+        new Date(userData.testActivity.lastDay),
+        firstDayOfTheWeek,
+      );
+    }
+
+    const hourOffset = userData?.streak?.hourOffset;
+    snap.streakHourOffset = hourOffset ?? undefined;
+
+    if (userData.lbMemory !== undefined) {
+      snap.lbMemory = userData.lbMemory;
+    }
+
+    updateTagsInFilterStorage(userData.tags?.map((it) => it._id) ?? []);
+
+    dbSnapshot = snap;
+
+    return dbSnapshot;
+  } catch (e) {
+    dbSnapshot = getDefaultSnapshot();
+    throw e;
+  } finally {
+    setSolidSnapshot(dbSnapshot);
+  }
+}
+export function getLocalPB<M extends Mode>(
+  mode: M,
+  mode2: Mode2<M>,
+  punctuation: boolean,
+  numbers: boolean,
+  language: string,
+  difficulty: Difficulty,
+  lazyMode: boolean,
+  funboxes: FunboxMetadata[],
+): PersonalBest | undefined {
+  if (!funboxes.every((f) => f.canGetPb)) {
+    return undefined;
+  }
+
+  const pbs = dbSnapshot?.personalBests?.[mode]?.[mode2] as
+    | PersonalBest[]
+    | undefined;
+
+  return pbs?.find(
+    (pb) =>
+      (pb.punctuation ?? false) === punctuation &&
+      (pb.numbers ?? false) === numbers &&
+      pb.difficulty === difficulty &&
+      pb.language === language &&
+      (pb.lazyMode ?? false) === lazyMode,
   );
 }
 
-export function setSnapshot(_snapshot: Partial<Snapshot>): void {
-  // No-op
-}
-
-export function isFriend(_uid: string): boolean {
-  return false;
-}
-
-export function getActiveFunboxes(): Array<{
-  name: string;
-  properties: string[];
-  functions?: unknown;
-}> {
-  return [];
-}
-
-export function updateInboxUnreadSize(_size: number): void {
-  // No-op
-}
-
-export function addBadge(_badgeId: number): void {
-  // No-op
-}
-
-export function addXp(_xp: number): void {
-  // No-op
-}
-
-export async function getActiveTagsPB(
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
-): Promise<number | null> {
-  return null;
-}
-
-export function getLocalTagPB(
-  _tagName: string,
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-): number | null {
-  return null;
-}
-
-export function saveLocalTagPB(
-  _tagName: string,
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
-  _wpm: number,
-  _acc: number,
-  _rawWpm: number,
-  _consistency: number,
+function saveLocalPB<M extends Mode>(
+  mode: M,
+  mode2: Mode2<M>,
+  punctuation: boolean,
+  numbers: boolean,
+  language: Language,
+  difficulty: Difficulty,
+  lazyMode: boolean,
+  wpm: number,
+  acc: number,
+  raw: number,
+  consistency: number,
 ): void {
-  // No-op
+  if (mode === "quote") return;
+  if (!dbSnapshot) return;
+  function cont(): void {
+    if (!dbSnapshot) return;
+    let found = false;
+
+    dbSnapshot.personalBests ??= {
+      time: {},
+      words: {},
+      quote: {},
+      zen: {},
+      custom: {},
+    };
+
+    dbSnapshot.personalBests[mode] ??= {
+      [mode2]: [],
+    };
+
+    dbSnapshot.personalBests[mode][mode2] ??=
+      [] as unknown as PersonalBests[M][Mode2<M>];
+
+    (
+      dbSnapshot.personalBests[mode][mode2] as unknown as PersonalBest[]
+    ).forEach((pb) => {
+      if (
+        (pb.punctuation ?? false) === punctuation &&
+        (pb.numbers ?? false) === numbers &&
+        pb.difficulty === difficulty &&
+        pb.language === language &&
+        (pb.lazyMode ?? false) === lazyMode
+      ) {
+        found = true;
+        pb.wpm = wpm;
+        pb.acc = acc;
+        pb.raw = raw;
+        pb.timestamp = Date.now();
+        pb.consistency = consistency;
+        pb.lazyMode = lazyMode;
+      }
+    });
+    if (!found) {
+      //nothing found
+      (dbSnapshot.personalBests[mode][mode2] as unknown as PersonalBest[]).push(
+        {
+          language,
+          difficulty,
+          lazyMode,
+          punctuation,
+          numbers,
+          wpm,
+          acc,
+          raw,
+          timestamp: Date.now(),
+          consistency,
+        },
+      );
+    }
+  }
+
+  if (dbSnapshot !== null) {
+    cont();
+  }
 }
 
-export async function updateLocalTagPB(
-  _tagId: string,
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
+export async function updateLbMemory<M extends Mode>(
+  mode: M,
+  mode2: Mode2<M> | undefined,
+  language: Language,
+  rank: number,
+  api = false,
 ): Promise<void> {
-  // No-op - localStorage handles tag PB updates
-}
+  if (mode2 === undefined) return;
+  if (mode === "time") {
+    const timeMode = mode;
+    const timeMode2 = mode2 as "15" | "60";
 
-export async function getUserDailyBest(
-  _mode: string,
-  _mode2: string,
-  _punctuation: boolean,
-  _numbers: boolean,
-  _language: string,
-  _difficulty: string,
-  _lazyMode: boolean,
-): Promise<number | null> {
-  return null;
-}
+    const snapshot = getSnapshot();
+    if (!snapshot) return;
+    snapshot.lbMemory ??= {
+      time: { "15": { english: 0 }, "60": { english: 0 } },
+    };
+    snapshot.lbMemory[timeMode] ??= {
+      "15": { english: 0 },
+      "60": { english: 0 },
+    };
+    snapshot.lbMemory[timeMode][timeMode2] ??= {};
+    const current = snapshot.lbMemory?.[timeMode]?.[timeMode2]?.[language];
 
-export function updateLbMemory(
-  _type: string,
-  _mode2: string,
-  _language: string,
-  _rank: number,
-  _isPb: boolean,
-): void {
-  // No-op
-}
-
-export function mergeConnections(_connections: unknown[]): void {
-  // No-op
-}
-
-export async function saveLocalResult(_result: unknown): Promise<void> {
-  // No-op
-}
-
-export async function saveLocalResultData(
-  _result: unknown,
-  _isPb: boolean,
-  _tags: string[],
-): Promise<void> {
-  // No-op
+    //this is protected above so not sure why it would be undefined
+    const mem = snapshot.lbMemory[timeMode][timeMode2];
+    mem[language] = rank;
+    if (api && current !== rank) {
+      await Ape.users.updateLeaderboardMemory({
+        body: { mode, mode2, language, rank },
+      });
+    }
+    setSnapshot(snapshot);
+  }
 }
 
 export type SaveLocalResultData = {
   xp?: number;
+  xpBreakdown?: XpBreakdown;
   streak?: number;
-  result?: unknown;
+  result?: SnapshotResult<Mode>;
   isPb?: boolean;
 };
 
-export async function addCustomTheme(_theme: unknown): Promise<void> {
-  // No-op
+export function saveLocalResult(data: SaveLocalResultData): void {
+  const snapshot = getSnapshot();
+  if (!snapshot) return;
+
+  if (data.result !== undefined) {
+    void insertLocalResult({ result: data.result });
+    setLastResult(data.result);
+    if (snapshot.testActivity !== undefined) {
+      snapshot.testActivity.increment(new Date(data.result.timestamp));
+    }
+    snapshot.typingStats ??= {
+      timeTyping: 0,
+      startedTests: 0,
+      completedTests: 0,
+    };
+
+    const time =
+      data.result.testDuration +
+      data.result.incompleteTestSeconds -
+      data.result.afkDuration;
+
+    snapshot.typingStats.timeTyping += time;
+    snapshot.typingStats.startedTests += data.result.restartCount + 1;
+    snapshot.typingStats.completedTests += 1;
+
+    if (data.isPb) {
+      saveLocalPB(
+        data.result.mode,
+        data.result.mode2,
+        data.result.punctuation,
+        data.result.numbers,
+        data.result.language,
+        data.result.difficulty,
+        data.result.lazyMode,
+        data.result.wpm,
+        data.result.acc,
+        data.result.rawWpm,
+        data.result.consistency,
+      );
+    }
+  }
+
+  if (data.xp !== undefined) {
+    snapshot.xp ??= 0;
+    snapshot.xp += data.xp;
+  }
+
+  if (data.streak !== undefined) {
+    snapshot.streak = data.streak;
+
+    if (snapshot.streak > snapshot.maxStreak) {
+      snapshot.maxStreak = snapshot.streak;
+    }
+  }
+
+  setSnapshot(snapshot, {
+    dispatchEvent: false,
+  });
+  if (data.xp !== undefined) {
+    setXpBarData({
+      addedXp: data.xp,
+      resultingXp: snapshot.xp,
+      breakdown: data.xpBreakdown,
+    });
+  }
 }
 
-export async function deleteCustomTheme(_id: string): Promise<void> {
-  // No-op
+export function addXp(xp: number, breakdown?: XpBreakdown): void {
+  const snapshot = getSnapshot();
+  if (!snapshot) return;
+
+  snapshot.xp ??= 0;
+  snapshot.xp += xp;
+  setSnapshot(snapshot, {
+    dispatchEvent: false,
+  });
+  setXpBarData({
+    addedXp: xp,
+    resultingXp: snapshot.xp,
+    breakdown: breakdown,
+  });
 }
 
-export async function editCustomTheme(
-  _id: string,
-  _theme: unknown,
-): Promise<void> {
-  // No-op
+export function updateInboxUnreadSize(newSize: number): void {
+  const snapshot = getSnapshot();
+  if (!snapshot) return;
+
+  snapshot.inboxUnreadSize = newSize;
+  setSnapshot(snapshot);
+}
+
+export function addBadge(badge: Badge): void {
+  const snapshot = getSnapshot();
+  if (!snapshot) return;
+
+  snapshot.inventory ??= {
+    badges: [],
+  };
+  snapshot.inventory.badges.push(badge);
+  setSnapshot(snapshot);
 }
 
 export async function getTestActivityCalendar(
-  _selected?: string,
-): Promise<null> {
-  return null;
+  yearString: string,
+): Promise<TestActivityCalendar | undefined> {
+  if (!isAuthenticated() || dbSnapshot === undefined) return undefined;
+
+  if (yearString === "current") return dbSnapshot.testActivity;
+
+  const currentYear = new Date().getFullYear().toString();
+  if (yearString === currentYear) {
+    return dbSnapshot.testActivity?.getFullYearCalendar();
+  }
+
+  if (dbSnapshot.testActivityByYear === undefined) {
+    showLoaderBar();
+    const response = await Ape.users.getTestActivity();
+    if (response.status !== 200) {
+      showErrorNotification("Error getting test activities", { response });
+      hideLoaderBar();
+      return undefined;
+    }
+
+    dbSnapshot.testActivityByYear = {};
+    for (const year in response.body.data) {
+      if (year === currentYear) continue;
+      const testsByDays = response.body.data[year] ?? [];
+      const lastDay = Dates.addDays(
+        new Date(parseInt(year), 0, 1),
+        testsByDays.length,
+      );
+
+      dbSnapshot.testActivityByYear[year] = new TestActivityCalendar(
+        testsByDays,
+        lastDay,
+        firstDayOfTheWeek,
+        true,
+      );
+    }
+    hideLoaderBar();
+  }
+
+  return dbSnapshot.testActivityByYear[yearString];
 }

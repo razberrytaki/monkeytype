@@ -1,67 +1,83 @@
-/**
- * @deprecated IndexedDB removed in privacy fork
- * This file is a stub to prevent build errors.
- * Files are now stored using localStorage.
- */
+import { openDB, DBSchema, IDBPDatabase } from "idb";
+import { createSignal } from "solid-js";
+
+type FileDB = DBSchema & {
+  files: {
+    key: string; // filename
+    value: string; // the data url
+  };
+};
+
+type Filename = "LocalBackgroundFile" | "LocalFontFamilyFile";
 
 class FileStorage {
-  private data: Record<string, string> = {};
+  private dbPromise: Promise<IDBPDatabase<FileDB>>;
+  private signals = new Map<
+    Filename,
+    [get: () => number, set: (v: number | ((prev: number) => number)) => void]
+  >();
 
-  constructor(_dbName = "file-storage-db") {
-    // Load from localStorage
-    const stored = localStorage.getItem("file-storage-db");
-    /* oxlint-disable-next-line strict-boolean-expressions */
-    if (stored) {
-      try {
-        this.data = JSON.parse(stored) as Record<string, string>;
-      } catch {
-        this.data = {};
-      }
+  constructor(dbName = "file-storage-db") {
+    this.dbPromise = openDB<FileDB>(dbName, 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains("files")) {
+          db.createObjectStore("files");
+        }
+      },
+    });
+  }
+
+  private getSignal(
+    filename: Filename,
+  ): [
+    get: () => number,
+    set: (v: number | ((prev: number) => number)) => void,
+  ] {
+    let signal = this.signals.get(filename);
+    if (!signal) {
+      signal = createSignal(0);
+      this.signals.set(filename, signal);
+    }
+    return signal;
+  }
+
+  private notify(filename: Filename): void {
+    const signal = this.signals.get(filename);
+    if (signal) {
+      signal[1]((v) => v + 1);
     }
   }
 
-  async put(key: string, value: string): Promise<void> {
-    this.data[key] = value;
-    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
+  /** Subscribe to changes for a filename. Call within a reactive context. Returns a version number. */
+  track(filename: Filename): number {
+    return this.getSignal(filename)[0]();
   }
 
-  async get(key: string): Promise<string | undefined> {
-    return this.data[key];
+  async storeFile(filename: Filename, dataUrl: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.put("files", dataUrl, filename);
+    this.notify(filename);
   }
 
-  async delete(key: string): Promise<void> {
-    const newData: Record<string, string> = {};
-    Object.entries(this.data).forEach(([k, v]) => {
-      if (k !== key) {
-        newData[k] = v;
-      }
-    });
-    this.data = newData;
-    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
+  async getFile(filename: Filename): Promise<string | undefined> {
+    const db = await this.dbPromise;
+    return db.get("files", filename);
   }
 
-  async clear(): Promise<void> {
-    this.data = {};
-    localStorage.setItem("file-storage-db", JSON.stringify(this.data));
+  async deleteFile(filename: Filename): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete("files", filename);
+    this.notify(filename);
   }
 
-  async hasFile(key: string): Promise<boolean> {
-    return key in this.data;
+  async listFilenames(): Promise<Filename[]> {
+    const db = await this.dbPromise;
+    return db.getAllKeys("files") as Promise<Filename[]>;
   }
 
-  async storeFile(key: string, value: string): Promise<void> {
-    return this.put(key, value);
-  }
-
-  async deleteFile(key: string): Promise<void> {
-    return this.delete(key);
-  }
-
-  async getFile(key: string): Promise<string | undefined> {
-    return this.get(key);
+  async hasFile(filename: Filename): Promise<boolean> {
+    return (await this.getFile(filename)) !== undefined;
   }
 }
 
-/* oxlint-disable-next-line no-deprecated */
-const fileStorage = new FileStorage();
-export default fileStorage;
+export default new FileStorage();

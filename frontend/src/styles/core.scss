@@ -1,6 +1,6 @@
 :root {
   --roundness: 0.5rem;
-  --font: "Roboto Mono", "Vazirmatn", monospace;
+  --font: "Roboto Mono", "Vazirharf", monospace;
   // scroll-behavior: smooth;
   scroll-padding-top: 2rem;
   font-weight: 400;
@@ -185,27 +185,16 @@ body {
   display: flex;
 }
 
-#backgroundLoader {
-  height: 3px;
-  position: fixed;
-  width: 100%;
-  background: var(--main-color);
-  animation: loader 2s cubic-bezier(0.38, 0.16, 0.57, 0.82) infinite;
-  z-index: 9999;
-  opacity: 0;
-}
-
-key {
+kbd {
   color: var(--bg-color);
   background-color: var(--sub-color);
-  /* font-weight: bold; */
-  padding: 0.1rem 0.3rem;
-  margin: 0rem 0rem;
-  border-radius: 0.1rem;
-  display: inline-block;
-  font-size: 0.7rem;
-  line-height: 0.7rem;
-  margin: 0 0.5em;
+
+  // color: var(--text-color);
+  // background: var(--sub-alt-color);
+
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.75em;
 }
 
 .pageLoading {
@@ -246,16 +235,6 @@ key {
   box-sizing: border-box;
 }
 
-.hidden {
-  display: none !important;
-}
-
-.invisible {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-}
-
 .inputAndIndicator {
   input {
     width: 100%;
@@ -290,24 +269,6 @@ key {
   }
 }
 
-#devButtons {
-  position: fixed;
-  left: 0;
-  top: 10rem;
-  display: grid;
-  grid-auto-flow: row;
-  gap: 0.5rem;
-  text-decoration: none;
-  z-index: 999999999;
-  border-radius: 0 1rem 1rem 0;
-
-  .button {
-    padding: 1rem;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-}
-
 .avatar {
   --size: 1em;
 
@@ -331,7 +292,6 @@ key {
     grid-column: 1/2;
     grid-row: 1/2;
     place-self: center center;
-    display: grid;
     place-content: center center;
     overflow: hidden;
     display: inline-block;
@@ -360,7 +320,6 @@ key {
   color: var(--text-color);
   border-radius: calc(var(--roundness) / 2);
   // padding: 0.15em 0.5em;
-  -webkit-user-select: none;
   user-select: none;
   display: grid;
   grid-template-columns: max-content auto;
@@ -414,7 +373,7 @@ key {
 }
 
 // mouseover texts
-[aria-label][data-balloon-pos]:after {
+[aria-label][data-balloon-pos]::after {
   font-family: var(--font);
   font-size: var(--balloon-font-size);
   line-height: var(--balloon-font-size);
@@ -440,7 +399,6 @@ table {
   z-index: 0;
   td.sortable:hover {
     cursor: pointer;
-    -webkit-user-select: none;
     user-select: none;
     background-color: var(--sub-alt-color);
   }

@@ -1,54 +1,20 @@
-import { envConfig } from "virtual:env-config";
-const siteKey = envConfig.recaptchaSiteKey;
-
-const captchas: Record<string, number> = {};
-
-type Grecaptcha = {
-  render: (
-    element: HTMLElement,
-    options: { sitekey: string; callback?: (responseToken: string) => void },
-  ) => number;
-  reset: (widgetId: number) => void;
-  getResponse: (widgetId: number) => string;
-};
-
-function getGrecaptcha(): Grecaptcha {
-  if (!("grecaptcha" in window)) {
-    throw new Error("grecaptcha is not defined");
-  }
-
-  return window.grecaptcha as Grecaptcha;
-}
-
+/** Privacy fork: reCAPTCHA is intentionally disabled. */
 export function isCaptchaAvailable(): boolean {
-  return "grecaptcha" in window;
+  return false;
 }
 
 export function render(
-  element: HTMLElement,
-  id: string,
-  callback?: (responseToken: string) => void,
+  _element: HTMLElement,
+  _id: string,
+  _callback?: (responseToken: string) => void,
 ): void {
-  if (captchas[id] !== undefined && captchas[id] !== null) {
-    return;
-  }
-  const widgetId = getGrecaptcha().render(element, {
-    sitekey: siteKey,
-    callback,
-  });
-  captchas[id] = widgetId;
+  // No-op.
 }
 
-export function reset(id: string): void {
-  if (captchas[id] === undefined || captchas[id] === null) {
-    return;
-  }
-  getGrecaptcha().reset(captchas[id]);
+export function reset(_id: string): void {
+  // No-op.
 }
 
-export function getResponse(id: string): string {
-  if (captchas[id] === undefined || captchas[id] === null) {
-    return "";
-  }
-  return getGrecaptcha().getResponse(captchas[id]);
+export function getResponse(_id: string): string {
+  return "";
 }

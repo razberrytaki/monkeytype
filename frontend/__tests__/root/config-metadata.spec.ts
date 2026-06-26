@@ -1,9 +1,10 @@
 import { describe, it, expect, afterAll, vi } from "vitest";
-import { configMetadata } from "../../src/ts/config-metadata";
-import * as Config from "../../src/ts/config";
+import { configMetadata } from "../../src/ts/config/metadata";
+import { __testing } from "../../src/ts/config/testing";
+import { setConfig } from "../../src/ts/config/setters";
 import { ConfigKey, Config as ConfigType } from "@monkeytype/schemas/configs";
 
-const { replaceConfig, getConfig } = Config.__testing;
+const { replaceConfig, getConfig } = __testing;
 
 type TestsByConfig<T> = Partial<{
   [K in keyof ConfigType]: (T & { value: ConfigType[K] })[];
@@ -138,7 +139,7 @@ describe("ConfigMeta", () => {
         replaceConfig(given ?? {});
 
         //WHEN
-        Config.setConfig(key, value as any);
+        setConfig(key, value as any);
 
         //THEN
         expect(getConfig()).toMatchObject(expected);
@@ -162,12 +163,20 @@ describe("ConfigMeta", () => {
         { value: false, given: { tapeMode: "word" } },
         { value: true, given: { tapeMode: "word" }, fail: true },
       ],
+      monkey: [{ value: false, given: { liveSpeedStyle: "text" } }],
+      liveSpeedStyle: [
+        { value: "mini", given: { monkey: true } },
+        { value: "text", given: { monkey: true } },
+      ],
+      liveAccStyle: [
+        { value: "mini", given: { monkey: true } },
+        { value: "text", given: { monkey: true } },
+      ],
     };
 
     it.for(
-      Object.entries(testCases).flatMap(
-        ([key, value]) =>
-          value?.flatMap((it) => ({ key: key as ConfigKey, ...it })) ?? [],
+      Object.entries(testCases).flatMap(([key, value]) =>
+        value.flatMap((it) => ({ key: key as ConfigKey, ...it })),
       ),
     )(
       `$key value=$value given=$given fail=$fail`,
@@ -176,7 +185,7 @@ describe("ConfigMeta", () => {
         replaceConfig(given ?? {});
 
         //WHEN
-        const applied = Config.setConfig(key, value as any);
+        const applied = setConfig(key, value as any);
 
         //THEN
         expect(applied).toEqual(!fail);
@@ -242,6 +251,45 @@ describe("ConfigMeta", () => {
           value: "on",
           given: { freedomMode: true, stopOnError: "word" },
           expected: { freedomMode: false, stopOnError: "off" },
+        },
+      ],
+      monkey: [
+        {
+          value: false,
+          given: { liveSpeedStyle: "text", liveAccStyle: "text" },
+          expected: {
+            liveSpeedStyle: "text",
+            liveAccStyle: "text",
+          },
+        },
+        {
+          value: true,
+          given: { liveSpeedStyle: "text", liveAccStyle: "text" },
+          expected: { liveSpeedStyle: "mini", liveAccStyle: "mini" },
+        },
+      ],
+      liveSpeedStyle: [
+        {
+          value: "mini",
+          given: { monkey: true },
+          expected: { monkey: true },
+        },
+        {
+          value: "text",
+          given: { monkey: true },
+          expected: { monkey: false },
+        },
+      ],
+      liveAccStyle: [
+        {
+          value: "mini",
+          given: { monkey: true },
+          expected: { monkey: true },
+        },
+        {
+          value: "text",
+          given: { monkey: true },
+          expected: { monkey: false },
         },
       ],
       tapeMode: [
@@ -326,9 +374,8 @@ describe("ConfigMeta", () => {
     };
 
     it.for(
-      Object.entries(testCases).flatMap(
-        ([key, value]) =>
-          value?.flatMap((it) => ({ key: key as ConfigKey, ...it })) ?? [],
+      Object.entries(testCases).flatMap(([key, value]) =>
+        value.flatMap((it) => ({ key: key as ConfigKey, ...it })),
       ),
     )(
       `$key value=$value given=$given expected=$expected`,
@@ -337,7 +384,7 @@ describe("ConfigMeta", () => {
         replaceConfig(given);
 
         //WHEN
-        Config.setConfig(key, value as any);
+        setConfig(key, value as any);
 
         //THEN
         expect(getConfig()).toMatchObject(expected ?? {});

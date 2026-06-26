@@ -584,6 +584,18 @@ export async function addResult(
     streak,
   );
 
+  if (isNaN(xpGained.xp)) {
+    throw new MonkeyError(
+      500,
+      "Calculated XP is NaN",
+      JSON.stringify({
+        xpGained,
+        result: completedEvent,
+      }),
+      uid,
+    );
+  }
+
   if (xpGained.xp < 0) {
     throw new MonkeyError(
       500,
@@ -637,7 +649,7 @@ export async function addResult(
   if (isPb) {
     void addLog(
       "user_new_pb",
-      `${completedEvent.mode + " " + completedEvent.mode2} ${
+      `${`${completedEvent.mode} ${completedEvent.mode2}`} ${
         completedEvent.wpm
       } ${completedEvent.acc}% ${completedEvent.rawWpm} ${
         completedEvent.consistency
@@ -726,7 +738,7 @@ async function calculateXp(
   } else if (correctedEverything) {
     // corrected everything bonus
     modifier += 0.25;
-    breakdown["corrected"] = Math.round(baseXp * 0.25);
+    breakdown.corrected = Math.round(baseXp * 0.25);
   }
 
   if (mode === "quote") {
@@ -779,9 +791,9 @@ async function calculateXp(
   let incompleteXp = 0;
   if (incompleteTests !== undefined && incompleteTests.length > 0) {
     incompleteTests.forEach((it: { acc: number; seconds: number }) => {
-      let modifier = (it.acc - 50) / 50;
-      if (modifier < 0) modifier = 0;
-      incompleteXp += Math.round(it.seconds * modifier);
+      let mod = (it.acc - 50) / 50;
+      if (mod < 0) mod = 0;
+      incompleteXp += Math.round(it.seconds * mod);
     });
     breakdown.incomplete = incompleteXp;
   } else if (incompleteTestSeconds && incompleteTestSeconds > 0) {
@@ -813,7 +825,7 @@ async function calculateXp(
   const totalXp =
     Math.round((xpAfterAccuracy + incompleteXp) * gainMultiplier) + dailyBonus;
 
-  if (gainMultiplier > 1) {
+  if (gainMultiplier !== 1) {
     // breakdown.push([
     //   "configMultiplier",
     //   Math.round((xpAfterAccuracy + incompleteXp) * (gainMultiplier - 1)),

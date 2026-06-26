@@ -1,14 +1,11 @@
-import * as TestStats from "../test/test-stats";
-import * as ManualRestart from "../test/manual-restart-tracker";
 import * as TestLogic from "../test/test-logic";
 import * as Funbox from "../test/funbox/funbox";
 import Page from "./page";
-import * as ModesNotice from "../elements/modes-notice";
+import { updateFooterAndVerticalAds } from "../controllers/ad-controller";
 import * as Keymap from "../elements/keymap";
-import * as TestConfig from "../test/test-config";
 import { blurInputElement } from "../input/input-element";
 import { qsr } from "../utils/dom";
-import { hideScrollToTop } from "../components/ScrollToTop";
+import { resetIncompleteTests } from "../states/test";
 
 export const page = new Page({
   id: "test",
@@ -18,26 +15,18 @@ export const page = new Page({
     blurInputElement();
   },
   afterHide: async (): Promise<void> => {
-    ManualRestart.set();
     TestLogic.restart({
       noAnim: true,
     });
     void Funbox.clear();
-    void ModesNotice.update();
-    void TestConfig.instantUpdate();
-    void Keymap.refresh();
-    hideScrollToTop();
+    updateFooterAndVerticalAds(true);
   },
   beforeShow: async (): Promise<void> => {
-    TestStats.resetIncomplete();
-    ManualRestart.set();
+    updateFooterAndVerticalAds(false);
+    resetIncompleteTests();
     TestLogic.restart({
       noAnim: true,
     });
-    void Funbox.clear();
-    void ModesNotice.update();
-    void TestConfig.instantUpdate();
     void Keymap.refresh();
-    hideScrollToTop();
   },
 });

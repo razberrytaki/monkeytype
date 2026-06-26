@@ -3,9 +3,7 @@ import { globSync } from "glob";
 
 export function extendConfig(
   customizer?: (options: Options) => Options,
-  // tsup uses MaybePromise which is not exported
-  // oxlint-disable-next-line no-explicit-any
-): (options: Options) => any {
+): (options: Options) => unknown {
   return (options) => {
     const overrideOptions = customizer?.(options);
     const entry = globSync("src/*.ts", { cwd: process.cwd() });

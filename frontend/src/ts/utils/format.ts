@@ -1,7 +1,9 @@
 import { get as getTypingSpeedUnit } from "../utils/typing-speed-units";
 import * as Numbers from "@monkeytype/util/numbers";
-import { Config as ConfigType } from "@monkeytype/schemas/configs";
-import Config from "../config";
+import {
+  Config as ConfigType,
+  TypingSpeedUnit,
+} from "@monkeytype/schemas/configs";
 
 export type FormatOptions = {
   showDecimalPlaces?: boolean;
@@ -20,9 +22,16 @@ export type FallbackOptions = {
   fallback?: string;
 };
 
+type FormatConfig = Pick<
+  ConfigType,
+  "typingSpeedUnit" | "alwaysShowDecimalPlaces"
+>;
+
 export class Formatting {
-  constructor(private config: ConfigType) {
-    //
+  private config: FormatConfig;
+
+  constructor(config: FormatConfig) {
+    this.config = config;
   }
 
   typingSpeed(
@@ -42,7 +51,7 @@ export class Formatting {
     formatOptions: FormatOptions = {},
   ): string {
     const options = { ...FORMAT_DEFAULT_OPTIONS, ...formatOptions };
-    options.suffix = "%" + (options.suffix ?? "");
+    options.suffix = `%${options.suffix ?? ""}`;
 
     return this.number(percentage, options);
   }
@@ -63,6 +72,10 @@ export class Formatting {
   ): string {
     const options = { ...FORMAT_DEFAULT_OPTIONS, ...formatOptions };
     return this.number(value, options);
+  }
+
+  get typingSpeedUnit(): TypingSpeedUnit {
+    return this.config.typingSpeedUnit;
   }
 
   private number(
@@ -107,5 +120,3 @@ export class Formatting {
     return position + numend;
   }
 }
-
-export default new Formatting(Config);

@@ -10,68 +10,112 @@ import path from "node:path";
 import injectHTML from "vite-plugin-html-inject";
 import childProcess from "child_process";
 import autoprefixer from "autoprefixer";
-import { Fonts, FontConfig } from "./src/ts/constants/fonts";
+import { Fonts } from "./src/ts/constants/fonts";
 import { fontawesomeSubset } from "./vite-plugins/fontawesome-subset";
 import { fontPreview } from "./vite-plugins/font-preview";
 import { envConfig } from "./vite-plugins/env-config";
 import { languageHashes } from "./vite-plugins/language-hashes";
 import { minifyJson } from "./vite-plugins/minify-json";
 import { versionFile } from "./vite-plugins/version-file";
-import { jqueryInject } from "./vite-plugins/jquery-inject";
-// import { oxlintChecker } from "./vite-plugins/oxlint-checker";
+import { oxlintChecker } from "./vite-plugins/oxlint-checker";
+import { injectPreload } from "./vite-plugins/inject-preload";
 import Inspect from "vite-plugin-inspect";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
 import { VitePWA } from "vite-plugin-pwa";
-// eslint-disable-next-line import/no-unresolved
-import UnpluginInjectPreload from "unplugin-inject-preload/vite";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { KnownFontName } from "@monkeytype/schemas/fonts";
 import solidPlugin from "vite-plugin-solid";
+import devtools from "solid-devtools/vite";
+import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig(({ mode }): UserConfig => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const isDevelopment = mode !== "production";
+function getFontsConfig(): string {
+  return `\n${Object.keys(Fonts)
+    .sort()
+    .map((name: string) => {
+      const config = Fonts[name as KnownFontName];
+      if (config.systemFont === true) return "";
+      return `"${name.replaceAll("_", " ")}": (
+        "src": "${config.fileName}",
+        "weight": ${config.weight ?? 400},
+        ),`;
+    })
+    .join("\n")}\n`;
+}
 
-  return {
-    plugins: getPlugins({ isDevelopment, env }),
-    build: getBuildOptions(),
-    css: getCssOptions({ isDevelopment }),
-    server: {
-      open: env["SERVER_OPEN"] !== "false",
-      port: 3000,
-      host: false,
-    },
-    clearScreen: false,
-    root: "src",
-    publicDir: "../static",
-    optimizeDeps: {
-      include: ["jquery"],
-      exclude: ["@fortawesome/fontawesome-free"],
-    },
-  };
-});
+function pad(
+  numbers: number[],
+  maxLength: number,
+  fillString: string,
+): string[] {
+  return numbers.map((number) =>
+    number.toString().padStart(maxLength, fillString),
+  );
+}
+
+function getClientVersion(isDevelopment: boolean): string {
+  if (isDevelopment) {
+    return "DEVELOPMENT_CLIENT";
+  }
+  const date = new Date();
+  const versionPrefix = pad(
+    [date.getFullYear(), date.getMonth() + 1, date.getDate()],
+    2,
+    "0",
+  ).join(".");
+  const versionSuffix = pad([date.getHours(), date.getMinutes()], 2, "0").join(
+    ".",
+  );
+  const version = [versionPrefix, versionSuffix].join("_");
+
+  try {
+    const commitHash = childProcess
+      .execSync("git rev-parse --short HEAD")
+      .toString();
+
+    return `${version}_${commitHash}`.replace(/\n/g, "");
+  } catch (e) {
+    return `${version}_unknown-hash`;
+  }
+}
+
+/** Enable for font awesome v6 */
+/*
+function sassList(values) {
+  return values.map((it) => `"${it}"`).join(",");
+}
+*/
 
 function getPlugins({
   isDevelopment,
   env,
+  useSentry,
 }: {
   isDevelopment: boolean;
   env: Record<string, string>;
+  useSentry: boolean;
 }): PluginOption[] {
   const clientVersion = getClientVersion(isDevelopment);
 
   const plugins: PluginOption[] = [
     envConfig({ isDevelopment, clientVersion, env }),
     languageHashes({ skip: isDevelopment }),
-    // oxlintChecker({
-    //   debounceDelay: 125,
-    //   typeAware: true,
-    //   overlay: true,
-    // }),
-    jqueryInject(),
-    injectHTML(),
+    injectHTML() as PluginOption,
+    tailwindcss(),
+
     solidPlugin(),
+    devtools({
+      autoname: true,
+    }),
   ];
 
-  const devPlugins: PluginOption[] = [Inspect()];
+  const devPlugins: PluginOption[] = [
+    oxlintChecker({
+      debounceDelay: 125,
+      typeAware: true,
+      overlay: isDevelopment,
+    }),
+    Inspect(),
+  ];
 
   const prodPlugins: PluginOption[] = [
     fontPreview(),
@@ -114,6 +158,14 @@ function getPlugins({
         runtimeCaching: [
           {
             urlPattern: (options) => {
+              const isApi = options.url.hostname === "api.monkeytype.com";
+              return options.sameOrigin && !isApi;
+            },
+            handler: "NetworkFirst",
+            options: {},
+          },
+          {
+            urlPattern: (options) => {
               //disable caching for version.json
               return options.url.pathname === "/version.json";
             },
@@ -123,29 +175,18 @@ function getPlugins({
         ],
       },
     }),
-    UnpluginInjectPreload({
-      files: [
-        {
-          outputMatch: /css\/.*\.css$/,
-          attributes: {
-            as: "style",
-            type: "text/css",
-            rel: "preload",
-            crossorigin: true,
+    useSentry
+      ? sentryVitePlugin({
+          authToken: env["SENTRY_AUTH_TOKEN"],
+          org: "monkeytype",
+          project: "frontend",
+          release: {
+            name: clientVersion,
           },
-        },
-        {
-          outputMatch: /.*\.woff2$/,
-          attributes: {
-            as: "font",
-            type: "font/woff2",
-            rel: "preload",
-            crossorigin: true,
-          },
-        },
-      ],
-      injectTo: "head-prepend",
-    }),
+          applicationKey: "monkeytype-frontend",
+        })
+      : null,
+    injectPreload(),
     minifyJson(),
   ];
 
@@ -154,9 +195,13 @@ function getPlugins({
   );
 }
 
-function getBuildOptions(): BuildEnvironmentOptions {
+function getBuildOptions({
+  enableSourceMaps,
+}: {
+  enableSourceMaps: boolean;
+}): BuildEnvironmentOptions {
   return {
-    sourcemap: false,
+    sourcemap: enableSourceMaps,
     emptyOutDir: true,
     outDir: "../dist",
     assetsInlineLimit: 0, //dont inline small files as data
@@ -196,17 +241,37 @@ function getBuildOptions(): BuildEnvironmentOptions {
         },
         chunkFileNames: "js/[name].[hash].js",
         entryFileNames: "js/[name].[hash].js",
-        manualChunks: (id) => {
-          if (id.includes("jquery")) {
-            return "vendor-jquery";
-          }
-          if (id.includes("monkeytype/packages")) {
-            return "monkeytype-packages";
-          }
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
-          return;
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-sentry",
+              test: /node_modules\/@sentry\//,
+            },
+            {
+              name: "vendor-firebase",
+              test: /node_modules\/@firebase\//,
+            },
+            {
+              name: "vendor-tanstack",
+              test: /node_modules\/@tanstack\//,
+            },
+            {
+              name: "monkeytype-packages",
+              test: /monkeytype\/packages\//,
+            },
+            {
+              name: "vendor-chart",
+              test: /node_modules\/chart/,
+            },
+            {
+              name: "monkeytype-utils",
+              test: /src\/ts\/utils\//,
+            },
+            {
+              name: "vendor",
+              test: /node_modules\//,
+            },
+          ],
         },
       },
     },
@@ -221,14 +286,11 @@ function getCssOptions({
   return {
     devSourcemap: true,
     postcss: {
-      plugins: [
-        // @ts-expect-error  this is fine
-        autoprefixer({}),
-      ],
+      plugins: [autoprefixer({})],
     },
     preprocessorOptions: {
       scss: {
-        additionalData(source, fp) {
+        additionalData(source: string, fp: string) {
           if (isDevelopment || fp.endsWith("index.scss")) {
             /** Enable for font awesome v6 */
             /*
@@ -264,64 +326,41 @@ function getCssOptions({
   };
 }
 
-function getFontsConfig(): string {
-  return (
-    "\n" +
-    Object.keys(Fonts)
-      .sort()
-      .map((name: string) => {
-        // oxlint-disable-next-line no-unnecessary-type-assertion
-        const config = Fonts[name as keyof typeof Fonts] as FontConfig;
-        if (config.systemFont === true) return "";
-        return `"${name.replaceAll("_", " ")}": (
-        "src": "${config.fileName}",
-        "weight": ${config.weight ?? 400},
-        ),`;
-      })
-      .join("\n") +
-    "\n"
-  );
-}
+export default defineConfig(({ mode }): UserConfig => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const useSentry = false;
+  const isDevelopment = mode !== "production";
 
-function pad(
-  numbers: number[],
-  maxLength: number,
-  fillString: string,
-): string[] {
-  return numbers.map((number) =>
-    number.toString().padStart(maxLength, fillString),
-  );
-}
 
-/** Enable for font awesome v6 */
-/*
-function sassList(values) {
-  return values.map((it) => `"${it}"`).join(",");
-}
-*/
-
-function getClientVersion(isDevelopment: boolean): string {
-  if (isDevelopment) {
-    return "DEVELOPMENT_CLIENT";
-  }
-  const date = new Date();
-  const versionPrefix = pad(
-    [date.getFullYear(), date.getMonth() + 1, date.getDate()],
-    2,
-    "0",
-  ).join(".");
-  const versionSuffix = pad([date.getHours(), date.getMinutes()], 2, "0").join(
-    ".",
-  );
-  const version = [versionPrefix, versionSuffix].join("_");
-
-  try {
-    const commitHash = childProcess
-      .execSync("git rev-parse --short HEAD")
-      .toString();
-
-    return `${version}_${commitHash}`.replace(/\n/g, "");
-  } catch (e) {
-    return `${version}_unknown-hash`;
-  }
-}
+  return {
+    plugins: getPlugins({ isDevelopment, useSentry: useSentry, env }),
+    build: getBuildOptions({ enableSourceMaps: useSentry }),
+    css: getCssOptions({ isDevelopment }),
+    server: {
+      open: env["SERVER_OPEN"] !== "false",
+      port: 3000,
+      host: env["BACKEND_URL"] !== undefined,
+      watch: {
+        //we rebuild the whole contracts package when a file changes
+        //so we only want to watch one file
+        ignored: [/.*\/packages\/contracts\/dist\/(?!configs).*/],
+      },
+    },
+    resolve: {
+      alias: isDevelopment
+        ? []
+        : [
+            {
+              find: /\/constants\/firebase-config$/,
+              replacement: "/constants/firebase-config-live",
+            },
+          ],
+    },
+    clearScreen: false,
+    root: "src",
+    publicDir: "../static",
+    optimizeDeps: {
+      exclude: ["@fortawesome/fontawesome-free"],
+    },
+  };
+});

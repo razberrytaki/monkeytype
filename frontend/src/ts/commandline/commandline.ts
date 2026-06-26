@@ -1,26 +1,39 @@
 import * as Focus from "../test/focus";
 import * as CommandlineLists from "./lists";
-import Config from "../config";
+import { Config } from "../config/store";
 import * as AnalyticsController from "../controllers/analytics-controller";
 import * as ThemeController from "../controllers/theme-controller";
 import { clearFontPreview } from "../ui";
 import AnimatedModal, { ShowOptions } from "../utils/animated-modal";
-import * as Notifications from "../elements/notifications";
+import { showNoticeNotification } from "../states/notifications";
 import * as OutOfFocus from "../test/out-of-focus";
-import * as ActivePage from "../states/active-page";
-import * as Loader from "../elements/loader";
-import { Command, CommandsSubgroup, CommandWithValidation } from "./types";
+import {
+  getActivePage,
+  getCommandlineSubgroup,
+  setCommandlineSubgroup,
+} from "../states/core";
+import { showLoaderBar, hideLoaderBar } from "../states/loader-bar";
+import {
+  Command,
+  CommandlineSubgroupKey,
+  CommandsSubgroup,
+  CommandWithValidation,
+} from "./types";
 import { areSortedArraysEqual, areUnsortedArraysEqual } from "../utils/arrays";
 import { parseIntOptional } from "../utils/numbers";
 import { debounce } from "throttle-debounce";
 import { intersect } from "@monkeytype/util/arrays";
-import {
-  createInputEventHandler,
-  ValidationResult,
-} from "../elements/input-validation";
+import { createInputEventHandler } from "../elements/input-validation";
 import { isInputElementFocused } from "../input/input-element";
 import { qs } from "../utils/dom";
-import { ConfigKey } from "@monkeytype/schemas/configs";
+import { createEffect } from "solid-js";
+import {
+  getModalVisibility,
+  hideModal as storeHideModal,
+  hideModalAndClearChain as storeClearChain,
+  isModalOpen,
+} from "../states/modals";
+import { ValidationResult } from "../types/validation";
 
 type CommandlineMode = "search" | "input";
 type InputModeParams = {
@@ -30,6 +43,8 @@ type InputModeParams = {
   icon: string | null;
   validation?: ValidationResult;
 };
+
+const MODAL_STORE_ID = "Commandline";
 
 let activeIndex = 0;
 let usingSingleList = false;
@@ -71,10 +86,7 @@ function addCommandlineBackground(): void {
 }
 
 type ShowSettings = {
-  subgroupOverride?:
-    | CommandsSubgroup
-    | CommandlineLists.ListsObjectKeys
-    | ConfigKey;
+  subgroupOverride?: CommandsSubgroup | CommandlineSubgroupKey;
   commandOverride?: string;
   singleListOverride?: boolean;
 };
@@ -98,27 +110,32 @@ export function show(
         value: null,
         icon: null,
       };
-      if (settings?.subgroupOverride !== undefined) {
-        if (typeof settings.subgroupOverride === "string") {
-          const exists = CommandlineLists.doesListExist(
-            settings.subgroupOverride,
-          );
+      const subgroupSignal = getCommandlineSubgroup();
+
+      const overrideStringOrGroup =
+        settings?.subgroupOverride ?? subgroupSignal ?? null;
+
+      if (
+        overrideStringOrGroup !== undefined &&
+        overrideStringOrGroup !== null
+      ) {
+        if (typeof overrideStringOrGroup === "string") {
+          const exists = CommandlineLists.doesListExist(overrideStringOrGroup);
           if (exists) {
-            Loader.show();
+            showLoaderBar();
             subgroupOverride = await CommandlineLists.getList(
-              settings.subgroupOverride,
+              overrideStringOrGroup as CommandlineSubgroupKey,
             );
-            Loader.hide();
+            hideLoaderBar();
           } else {
             subgroupOverride = null;
             usingSingleList = Config.singleListCommandLine === "on";
-            Notifications.add(
-              `Command list ${settings.subgroupOverride} not found`,
-              0,
+            showNoticeNotification(
+              `Command list ${overrideStringOrGroup} not found`,
             );
           }
         } else {
-          subgroupOverride = settings.subgroupOverride;
+          subgroupOverride = overrideStringOrGroup;
         }
         usingSingleList = false;
       } else {
@@ -133,11 +150,12 @@ export function show(
           (c) => c.id === settings.commandOverride,
         );
         if (command === undefined) {
-          Notifications.add(`Command ${settings.commandOverride} not found`, 0);
+          showNoticeNotification(
+            `Command ${settings.commandOverride} not found`,
+          );
         } else if (command?.input !== true) {
-          Notifications.add(
+          showNoticeNotification(
             `Command ${settings.commandOverride} is not an input command`,
-            0,
           );
         } else {
           showInputCommand = command;
@@ -155,6 +173,7 @@ export function show(
       await showCommands();
       await updateActiveCommand();
       setTimeout(() => {
+        lastActiveIndex = undefined;
         keepActiveCommandInView();
         if (showInputCommand) {
           const escaped =
@@ -180,17 +199,31 @@ function hide(clearModalChain = false): void {
   clearFontPreview();
   void ThemeController.clearPreview();
   isAnimating = true;
-  void modal.hide({
-    clearModalChain,
-    afterAnimation: async () => {
-      hideWarning();
-      addCommandlineBackground();
-      if (ActivePage.get() !== "test") {
-        (document.activeElement as HTMLElement | undefined)?.blur();
-      }
-      isAnimating = false;
-    },
-  });
+
+  // If managed by store, notify the store
+  if (isModalOpen(MODAL_STORE_ID)) {
+    if (clearModalChain) {
+      storeClearChain(MODAL_STORE_ID);
+    } else {
+      storeHideModal(MODAL_STORE_ID);
+    }
+    // Cleanup will happen in the effect when visibility changes
+  } else {
+    // Old modal system, hide directly
+    void modal.hide({
+      clearModalChain,
+      afterAnimation: async () => {
+        hideWarning();
+        addCommandlineBackground();
+        if (getActivePage() !== "test") {
+          (document.activeElement as HTMLElement | undefined)?.blur();
+        }
+        isAnimating = false;
+        subgroupOverride = null;
+        setCommandlineSubgroup(null);
+      },
+    });
+  }
 }
 
 async function goBackOrHide(): Promise<void> {
@@ -223,6 +256,10 @@ async function goBackOrHide(): Promise<void> {
   }
 }
 
+function stripPunctuation(str: string): string {
+  return str.replace(/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/g, "");
+}
+
 async function filterSubgroup(): Promise<void> {
   const subgroup = await getSubgroup();
   subgroup.beforeList?.();
@@ -234,7 +271,9 @@ async function filterSubgroup(): Promise<void> {
     .trim();
 
   const inputSplit =
-    inputNoQuickSingle.length === 0 ? [] : inputNoQuickSingle.split(" ");
+    inputNoQuickSingle.length === 0
+      ? []
+      : inputNoQuickSingle.split(" ").map(stripPunctuation).filter(Boolean);
 
   const matches: {
     matchCount: number;
@@ -266,8 +305,10 @@ async function filterSubgroup(): Promise<void> {
         : command.display
     )
       .toLowerCase()
-      .split(" ");
-    const aliasSplit = command.alias?.toLowerCase().split(" ") ?? [];
+      .split(" ")
+      .map(stripPunctuation);
+    const aliasSplit =
+      command.alias?.toLowerCase().split(" ").map(stripPunctuation) ?? [];
 
     const displayAliasSplit = displaySplit.concat(aliasSplit);
     const displayAliasMatchArray: (number | null)[] = displayAliasSplit.map(
@@ -457,6 +498,11 @@ async function showCommands(): Promise<void> {
 
   for (const command of list) {
     if (command.found !== true) continue;
+
+    if (command.isActive && firstActive === null && inputValue === "") {
+      firstActive = index;
+    }
+
     let customStyle = "";
     if (command.customStyle !== undefined && command.customStyle !== "") {
       customStyle = command.customStyle;
@@ -470,8 +516,9 @@ async function showCommands(): Promise<void> {
       if (command.configValue !== undefined || command.active !== undefined) {
         display = display.replace(
           `<i class="fas fa-fw fa-chevron-right chevronIcon"></i>`,
-          `<i class="fas fa-fw fa-chevron-right chevronIcon"></i>` +
-            configIconHtml,
+          `<i class="fas fa-fw fa-chevron-right chevronIcon"></i>${
+            configIconHtml
+          }`,
         );
       }
     }
@@ -498,16 +545,16 @@ async function showCommands(): Promise<void> {
         <i class="fas fa-star"></i>
       </div>
       <div class="themeBubbles" style="background: ${
-        command.customData["bgColor"]
-      };outline: 0.25rem solid ${command.customData["bgColor"]};">
+        command.customData["bg"]
+      };outline: 0.25rem solid ${command.customData["bg"]};">
         <div class="themeBubble" style="background: ${
-          command.customData["mainColor"]
+          command.customData["main"]
         }"></div>
         <div class="themeBubble" style="background: ${
-          command.customData["subColor"]
+          command.customData["sub"]
         }"></div>
         <div class="themeBubble" style="background: ${
-          command.customData["textColor"]
+          command.customData["text"]
         }"></div>
       </div>
       </div>`;
@@ -553,7 +600,7 @@ async function updateActiveCommand(): Promise<void> {
   activeCommand = command ?? null;
   if (element === undefined || command === undefined) {
     clearFontPreview();
-    void ThemeController.clearPreview(false);
+    void ThemeController.clearPreview();
     addCommandlineBackground();
     return;
   }
@@ -819,6 +866,7 @@ function createValidationHandler(command: Command): void {
 
 const modal = new AnimatedModal({
   dialogId: "commandLine",
+  storeId: MODAL_STORE_ID,
   customEscapeHandler: (): void => {
     //
   },
@@ -962,4 +1010,41 @@ const modal = new AnimatedModal({
       await runActiveCommand();
     });
   },
+});
+
+let lastVisibility: { visible: boolean; chained: boolean } | null = null;
+
+createEffect(() => {
+  const visibility = getModalVisibility(MODAL_STORE_ID);
+  const isVisible = visibility?.visible ?? false;
+  const wasVisible = lastVisibility?.visible ?? false;
+
+  // Show when visibility changes from false to true
+  if (isVisible && !wasVisible) {
+    show();
+  }
+  // Hide when visibility changes from true to false (triggered by store)
+  else if (!isVisible && wasVisible) {
+    // Only trigger hide if modal is actually open
+    if (modal.isOpen()) {
+      clearFontPreview();
+      void ThemeController.clearPreview();
+      // The store already updated, just trigger the animation
+      void modal.hide({
+        clearModalChain: !visibility?.chained,
+        afterAnimation: async () => {
+          hideWarning();
+          addCommandlineBackground();
+          if (getActivePage() !== "test") {
+            (document.activeElement as HTMLElement | undefined)?.blur();
+          }
+          isAnimating = false;
+          subgroupOverride = null;
+          setCommandlineSubgroup(null);
+        },
+      });
+    }
+  }
+
+  lastVisibility = visibility ? { ...visibility } : null;
 });

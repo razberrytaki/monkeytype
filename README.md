@@ -1,128 +1,72 @@
-# Monkeytype Privacy Fork
+[![](https://github.com/monkeytypegame/monkeytype/blob/master/frontend/static/images/githubbanner2.png?raw=true)](https://monkeytype.com/)
+<br />
 
-This is a privacy-focused fork of [Monkeytype](https://github.com/monkeytypegame/monkeytype) that removes all backend functionality, user tracking, and external dependencies.
+[![ChartJs](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)](https://www.chartjs.org/)
+[![Eslint](https://img.shields.io/badge/eslint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)](https://eslint.org/)
+[![Express](https://img.shields.io/badge/-Express-373737?style=for-the-badge&logo=Express&logoColor=white)](https://expressjs.com/)
+[![Firebase](https://img.shields.io/badge/firebase-DD2C00?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Fontawesome](https://img.shields.io/badge/fontawesome-538DD7?style=for-the-badge&logo=fontawesome&logoColor=white)](https://fontawesome.com/)
+[![HTML5](https://img.shields.io/badge/html5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![MongoDB](https://img.shields.io/badge/-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![OXLint](https://img.shields.io/badge/oxlint-2b3c5a?style=for-the-badge&logo=oxc&logoColor=white)](https://oxc.rs/docs/guide/usage/linter.html)
+[![PNPM](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Redis](https://img.shields.io/badge/Redis-FF4438?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![SASS](https://img.shields.io/badge/SASS-CC6699?style=for-the-badge&logo=SASS&logoColor=white)](https://sass-lang.com/)
+[![Solid](https://img.shields.io/badge/solid-2C4F7C?style=for-the-badge&logo=solid&logoColor=white)](https://www.solidjs.com/)
+[![Tailwind](https://img.shields.io/badge/tailwind-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![TsRest](https://img.shields.io/badge/-TSREST-9333ea?style=for-the-badge&logoColor=white&logo=data:image/svg%2bxml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjAuMzA2Nzc4bW0iCiAgIGhlaWdodD0iMTIuMDgzMjMzbW0iCiAgIHZpZXdCb3g9IjAgMCAyMC4zMDY3NzggMTIuMDgzMjMzIgogICB2ZXJzaW9uPSIxLjEiCiAgIGlkPSJzdmcxIgogICB4bWxuczppbmtzY2FwZT0iaHR0cDovL3d3dy5pbmtzY2FwZS5vcmcvbmFtZXNwYWNlcy9pbmtzY2FwZSIKICAgeG1sbnM6c29kaXBvZGk9Imh0dHA6Ly9zb2RpcG9kaS5zb3VyY2Vmb3JnZS5uZXQvRFREL3NvZGlwb2RpLTAuZHRkIgogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxzb2RpcG9kaTpuYW1lZHZpZXcKICAgICBpZD0ibmFtZWR2aWV3MSIKICAgICBwYWdlY29sb3I9IiM1MDUwNTAiCiAgICAgYm9yZGVyY29sb3I9IiNmZmZmZmYiCiAgICAgYm9yZGVyb3BhY2l0eT0iMSIKICAgICBpbmtzY2FwZTpzaG93cGFnZXNoYWRvdz0iMCIKICAgICBpbmtzY2FwZTpwYWdlb3BhY2l0eT0iMCIKICAgICBpbmtzY2FwZTpwYWdlY2hlY2tlcmJvYXJkPSIxIgogICAgIGlua3NjYXBlOmRlc2tjb2xvcj0iI2QxZDFkMSIKICAgICBpbmtzY2FwZTpkb2N1bWVudC11bml0cz0ibW0iIC8+CiAgPGRlZnMKICAgICBpZD0iZGVmczEiIC8+CiAgPGcKICAgICBpbmtzY2FwZTpsYWJlbD0iTGF5ZXIgMSIKICAgICBpbmtzY2FwZTpncm91cG1vZGU9ImxheWVyIgogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTMuODE5ODA1NCwtMi4yMTQ3MTkzKSI+CiAgICA8cGF0aAogICAgICAgZD0ibSAxNS40NTgwMzUsOC45NzMzOTUzIDguNjMzMjUsMC4wNDQ4NyAwLjAwOSwtMS42NjgxOTggLTguNjMzMjIsLTAuMDQ0ODUgeiBtIDAuMDI2MywtNS4wNTYxMDggOC42MzMyNSwwLjA0NDg1IDAuMDA5LC0xLjcwMjU2OCAtOC42MzMyNSwtMC4wNDQ4NSB6IG0gLTAuMDQ0OCw4LjYzMzI0NzcgOC42MzMyMywwLjA0NDg1IC0wLjAwOSwxLjcwMjU2NyAtOC42MzMyNSwtMC4wNDQ4NSB6IgogICAgICAgZmlsbD0iI2ZmZmZmZiIKICAgICAgIGlkPSJwYXRoMSIKICAgICAgIHN0eWxlPSJzdHJva2Utd2lkdGg6MC4yNjQ1ODMiIC8+CiAgICA8cGF0aAogICAgICAgZD0ibSAxMS4xMTE3MjUsMTAuMjg2NjI4IGMgMS42NTEsLTAuNjE5MTI0NyAyLjU5Njg4LC0xLjk2MDU2MjcgMi41OTY4OCwtMy44MDA3Mzk3IDAsLTIuNjQ4NDc5IC0xLjkyNjE2LC00LjI0Nzg4NSAtNS4wNzMzNzk2LC00LjI0Nzg4NSBoIC00LjgxNTQyIHYgMS43MDI1OTQgaCA0Ljc0NjYzIGMgMi4wODA5Mzk2LDAgMy4xNjQ0MDk2LDAuOTI4Njg3IDMuMTY0NDA5NiwyLjU0NTI5MSAwLDEuNTk5NDA2IC0xLjA4MzQ3LDIuNTQ1MjkyIC0zLjE2NDQwOTYsMi41NDUyOTIgaCAtNC43NDY2MyB2IDUuMjQ1MzYzNyBoIDEuOTYwNTYgdiAtMy41NzcxNjYgaCAyLjg1NDg2IGMgMC4yMDYzNywwIDAuNDI5OTUsMCAwLjYxOTEyLC0wLjAxNzIgbCAyLjUyODA5OTYsMy41OTQzNjQgaCAyLjEzMjU0IHoiCiAgICAgICBmaWxsPSIjZmZmZmZmIgogICAgICAgaWQ9InBhdGgyIgogICAgICAgc3R5bGU9InN0cm9rZS13aWR0aDowLjI2NDU4MyIgLz4KICA8L2c+Cjwvc3ZnPgo=)](https://ts-rest.com/)
+[![Turborepo](https://img.shields.io/badge/-Turborepo-FF1E56?style=for-the-badge&logo=turborepo&logoColor=white)](https://turborepo.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-9135FF?style=for-the-badge&logo=Vite&logoColor=white)](https://vitejs.dev/)
+[![Vitest](https://img.shields.io/badge/vitest-00FF74?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Zod](https://img.shields.io/badge/-Zod-408AFF?style=for-the-badge&logo=zod&logoColor=white)](https://zod.dev/)
 
-## Modifications
+# About
 
-This fork removes the following features from the original Monkeytype:
-- Backend API and server dependencies (Express, MongoDB, Redis)
-- User authentication and account system
-- Firebase integration and analytics
-- Leaderboards and social features
-- Discord bot integration
-- External data collection
+Monkeytype is a minimalistic and customizable [typing test](https://www.monkeytype.com). It features many test modes, an account system to save your typing speed history, and user-configurable features such as themes, sounds, a smooth caret, and more. Monkeytype attempts to emulate a natural typing experience during a typing test by unobtrusively presenting the text prompts and displaying typed characters in place, providing straightforward, real-time feedback on typos, speed, and accuracy.
 
-## Privacy Features
+# Features
 
-- **100% Client-Side**: All data stored locally in your browser
-- **No External Communication**: Works completely offline after initial load
-- **No User Tracking**: No analytics or telemetry
-- **Local Data Persistence**: Settings, history, and personal bests saved in localStorage
-- **Data Export/Import**: Backup and restore your data
+- Minimalistic design, with optional advertisements and focus mode while typing
+- Type what you see, see what you type
+- Live errors, wpm, and accuracy displays
+- A variety of test lengths and languages
+- Punctuation and numbers modes
+- Quotes
+- Themes
+- Smooth caret
+- Account system
+- Challenges and just-for-fun test modifiers
+- And much more
 
-## Retained Features
+# Discord bot
 
-- Core typing test functionality
-- Multiple test modes (time, words, quotes, custom)
-- Live error tracking and statistics
-- Theme system and customization
-- Smooth caret and animations
-- Sound effects
-- Funbox modes
-- Language support
+On the [Monkeytype Discord server](https://www.discord.gg/monkeytype), we added a Discord bot to auto-assign optional roles based on typing performance and challenge completion. You can find its code over at https://github.com/monkeytypegame/monkeytype-bot.
 
-## Development
+# Bug report or Feature request
 
-This is a fork of monkeytype v25.49.0, modified to remove all backend dependencies.
+If you encounter a bug or have a feature request, [send us an email](mailto:contact@monkeytype.com), [create an issue](https://github.com/monkeytypegame/monkeytype/issues), [create a discussion thread](https://github.com/monkeytypegame/monkeytype/discussions), or [join the Discord server](https://www.discord.gg/monkeytype).
 
-### Setup
+# Want to Contribute?
 
-```bash
-# Install dependencies
-pnpm install
+Refer to [CONTRIBUTING.md](./docs/CONTRIBUTING.md).
 
-# Start development server
-pnpm dev
+# Code of Conduct
 
-# Build for production
-pnpm build
-```
+Before contributing to this repository, please read the [code of conduct](./docs/CODE_OF_CONDUCT.md).
 
-### Project Structure
+# Security
 
-- `frontend/` - Main application
-- `static/` - Static assets (languages, themes, quotes)
-- `packages/local-storage-manager` - localStorage abstraction layer
-- `packages/util` - Shared utilities
+To report a security vulnerability, please refer to [SECURITY.md](./docs/SECURITY.md).
 
-## Data Storage
+# Credits
 
-All user data is stored in browser localStorage:
-- `mt_settings` - User preferences
-- `mt_history` - Typing test history (max 500 results)
-- `mt_personal_best` - Personal best records
-- `mt_tags` - Tags and statistics
-- `mt_version` - Storage format version
+[Montydrei](https://www.reddit.com/user/montydrei) for the name suggestion.
 
-## Data Management
+Everyone who provided valuable feedback on the [original Reddit post](https://www.reddit.com/r/MechanicalKeyboards/comments/gc6wx3/experimenting_with_a_completely_new_type_of/) for the prototype of this website.
 
-### Export Data
-1. Open browser console
-2. Run: `localStorage.getItem('mt_settings')` to get settings
-3. Or use the export functionality in the UI (if available)
+All of the [contributors](https://github.com/monkeytypegame/monkeytype/graphs/contributors) have helped implement various features, add themes, fix bugs, and more.
 
-### Import Data
-1. Copy your exported JSON data
-2. Use the import functionality in the UI (if available)
-3. Or manually set localStorage items
+# Support
 
-## License
-
-This project is licensed under GNU General Public License v3.0, the same as the original Monkeytype project.
-
-### Attribution
-
-This is a fork of [Monkeytype](https://github.com/monkeytypegame/monkeytype) by [monkeytypegame](https://github.com/monkeytypegame).
-
-All modifications are documented in the Git history. The original license and copyright notices are preserved in accordance with GPL-3.0 requirements.
-
-### GPL-3.0 Compliance
-
-- Modified files are clearly marked in the Git history
-- Original copyright notices preserved
-- License terms apply to the entire derived work
-- Source code is provided in full
-
-## Original Project
-
-For the original Monkeytype with account system and social features, visit:
-- Website: https://monkeytype.com
-- Repository: https://github.com/monkeytypegame/monkeytype
-
-## Support
-
-This privacy fork is maintained independently from the original Monkeytype project. For issues specific to this fork, please report them in this repository.
-
-## Contributing
-
-Contributions are welcome! Please read:
-- [CONTRIBUTING.md](./docs/CONTRIBUTING.md)
-- [CODE_OF_CONDUCT.md](./docs/CODE_OF_CONDUCT.md)
-
-When contributing, please focus on:
-- Bug fixes
-- Privacy improvements
-- Client-side features
-- Documentation updates
-
-Do not add:
-- Backend dependencies
-- External API calls
-- User tracking
-- Analytics
-
-## Credits
-
-All credits go to the original [Monkeytype team](https://github.com/monkeytypegame/monkeytype/graphs/contributors) for creating the core typing experience.
-
-This privacy fork was created to provide a completely offline, privacy-focused alternative for users who prefer not to share their typing data.
+If you wish to support further development and feel extra awesome, you can [donate](https://ko-fi.com/monkeytype), [become a Patron](https://www.patreon.com/monkeytype), or [buy a t-shirt](https://www.monkeytype.store/).

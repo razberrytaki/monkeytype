@@ -1,12 +1,18 @@
 import * as TestWords from "./test-words";
-import Config from "../config";
+import { Config } from "../config/store";
 import * as DB from "../db";
+import { getActiveTagsPB } from "../collections/tags";
 import * as Misc from "../utils/misc";
 import * as TestState from "./test-state";
-import * as ConfigEvent from "../observables/config-event";
-import { getActiveFunboxNames } from "./funbox/list";
-import { Caret } from "../utils/caret";
+import { configEvent } from "../events/config";
+import { getActiveFunboxes } from "./funbox/list";
+import { Caret } from "../elements/caret";
 import { qsr } from "../utils/dom";
+import {
+  getUserAverage10Once,
+  getUserDailyBestOnce,
+} from "../collections/results";
+import { getCurrentQuote, isPaceRepeat, setPaceCaretWpm } from "../states/test";
 
 type Settings = {
   wpm: number;
@@ -21,23 +27,20 @@ type Settings = {
 
 let startTimestamp = 0;
 
-export let settings: Settings | null = null;
+let settings: Settings | null = null;
 
 export const caret = new Caret(qsr("#paceCaret"), Config.paceCaretStyle);
 
 let lastTestWpm = 0;
 
 export function setLastTestWpm(wpm: number): void {
-  if (
-    !TestState.isPaceRepeat ||
-    (TestState.isPaceRepeat && wpm > lastTestWpm)
-  ) {
+  if (!isPaceRepeat() || (isPaceRepeat() && wpm > lastTestWpm)) {
     lastTestWpm = wpm;
   }
 }
 
 export function resetCaretPosition(): void {
-  if (Config.paceCaret === "off" && !TestState.isPaceRepeat) return;
+  if (Config.paceCaret === "off" && !isPaceRepeat()) return;
   if (Config.mode === "zen") return;
 
   caret.hide();
@@ -55,23 +58,11 @@ export function resetCaretPosition(): void {
 
 export async function init(): Promise<void> {
   caret.hide();
-  const mode2 = Misc.getMode2(Config, TestWords.currentQuote);
+  const mode2 = Misc.getMode2(Config, getCurrentQuote());
   let wpm = 0;
   if (Config.paceCaret === "pb") {
-    const pb = await DB.getLocalPB(
-      Config.mode,
-      mode2,
-      Config.punctuation,
-      Config.numbers,
-      Config.language,
-      Config.difficulty,
-      Config.lazyMode,
-      getActiveFunboxNames(),
-    );
-    wpm = pb ?? 0;
-  } else if (Config.paceCaret === "tagPb") {
     wpm =
-      (await DB.getActiveTagsPB(
+      DB.getLocalPB(
         Config.mode,
         mode2,
         Config.punctuation,
@@ -79,37 +70,30 @@ export async function init(): Promise<void> {
         Config.language,
         Config.difficulty,
         Config.lazyMode,
-      )) ?? 0;
+        getActiveFunboxes(),
+      )?.wpm ?? 0;
+  } else if (Config.paceCaret === "tagPb") {
+    wpm = getActiveTagsPB(
+      Config.mode,
+      mode2,
+      Config.punctuation,
+      Config.numbers,
+      Config.language,
+      Config.difficulty,
+      Config.lazyMode,
+    );
   } else if (Config.paceCaret === "average") {
-    const avgData = await DB.getUserAverage10(
-      Config.mode,
-      mode2,
-      Config.punctuation,
-      Config.numbers,
-      Config.language,
-      Config.difficulty,
-      Config.lazyMode,
-    );
-    const [avgWpm] = avgData ?? [0, 0];
-    wpm = Math.round(avgWpm);
+    wpm = Math.round((await getUserAverage10Once({ ...Config, mode2 })).wpm);
   } else if (Config.paceCaret === "daily") {
-    const dailyWpm = await DB.getUserDailyBest(
-      Config.mode,
-      mode2,
-      Config.punctuation,
-      Config.numbers,
-      Config.language,
-      Config.difficulty,
-      Config.lazyMode,
-    );
-    wpm = Math.round(dailyWpm ?? 0);
+    wpm = Math.round((await getUserDailyBestOnce({ ...Config, mode2 })).wpm);
   } else if (Config.paceCaret === "custom") {
     wpm = Config.paceCaretCustomSpeed;
-  } else if (Config.paceCaret === "last" || TestState.isPaceRepeat) {
+  } else if (Config.paceCaret === "last" || isPaceRepeat()) {
     wpm = lastTestWpm;
   }
   if (wpm === undefined || wpm < 1 || Number.isNaN(wpm)) {
     settings = null;
+    setPaceCaretWpm(undefined);
     return;
   }
 
@@ -127,6 +111,7 @@ export async function init(): Promise<void> {
     wordsStatus: {},
     timeout: null,
   };
+  setPaceCaretWpm(wpm);
 }
 
 export async function update(expectedStepEnd: number): Promise<void> {
@@ -195,7 +180,8 @@ function incrementLetterIndex(): void {
     settings.currentLetterIndex++;
     if (
       settings.currentLetterIndex >=
-      TestWords.words.get(settings.currentWordIndex).length + 1
+      // oxlint-disable-next-line typescript/no-non-null-assertion let it throw if undefined
+      TestWords.words.getText(settings.currentWordIndex)!.length + 1
     ) {
       //go to the next word
       settings.currentLetterIndex = 0;
@@ -208,7 +194,9 @@ function incrementLetterIndex(): void {
           if (settings.currentLetterIndex <= -2) {
             //go to the previous word
             settings.currentLetterIndex =
-              TestWords.words.get(settings.currentWordIndex - 1).length - 1;
+              // oxlint-disable-next-line typescript/no-non-null-assertion let it throw if undefined
+              TestWords.words.getText(settings.currentWordIndex - 1)!.length -
+              1;
             settings.currentWordIndex--;
           }
           settings.correction++;
@@ -218,7 +206,8 @@ function incrementLetterIndex(): void {
           settings.currentLetterIndex++;
           if (
             settings.currentLetterIndex >=
-            TestWords.words.get(settings.currentWordIndex).length
+            // oxlint-disable-next-line typescript/no-non-null-assertion let it throw if undefined
+            TestWords.words.getText(settings.currentWordIndex)!.length
           ) {
             //go to the next word
             settings.currentLetterIndex = 0;
@@ -265,7 +254,7 @@ export function start(): void {
   void update((settings?.spc ?? 0) * 1000);
 }
 
-ConfigEvent.subscribe(({ key }) => {
+configEvent.subscribe(({ key }) => {
   if (key === "paceCaret") void init();
   if (key === "paceCaretStyle") {
     caret.setStyle(Config.paceCaretStyle);

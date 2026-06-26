@@ -67,9 +67,9 @@ describe("PresetDal", () => {
       }
 
       //WHEN / THEN
-      await expect(() =>
+      await expect(async () =>
         PresetDal.addPreset(uid, { name: "max", config: {} }),
-      ).rejects.toThrowError("Too many presets");
+      ).rejects.toThrow("Too many presets");
     });
     it("should add preset", async () => {
       //GIVEN
@@ -356,9 +356,9 @@ describe("PresetDal", () => {
   describe("removePreset", () => {
     it("should fail if preset is unknown", async () => {
       const uid = new ObjectId().toHexString();
-      await expect(() =>
+      await expect(async () =>
         PresetDal.removePreset(uid, new ObjectId().toHexString()),
-      ).rejects.toThrowError("Preset not found");
+      ).rejects.toThrow("Preset not found");
     });
     it("should remove", async () => {
       //GIVEN
@@ -419,9 +419,9 @@ describe("PresetDal", () => {
       ).presetId;
 
       //WHEN
-      await expect(() =>
+      await expect(async () =>
         PresetDal.removePreset(decoyUid, first),
-      ).rejects.toThrowError("Preset not found");
+      ).rejects.toThrow("Preset not found");
 
       //THEN
       const read = await PresetDal.getPresets(uid);
