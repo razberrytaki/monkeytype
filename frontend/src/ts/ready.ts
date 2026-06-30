@@ -5,7 +5,6 @@ import { configLoadPromise } from "./config/lifecycle";
 import { authPromise } from "./firebase";
 import { animate } from "animejs";
 import { onDOMReady, qs } from "./utils/dom";
-import { isDevEnvironment } from "./utils/env";
 
 onDOMReady(async () => {
   await configLoadPromise;
@@ -27,29 +26,20 @@ onDOMReady(async () => {
 
   MonkeyPower.init();
 
-  if (isDevEnvironment()) {
-    void navigator.serviceWorker
-      .getRegistrations()
-      .then(function (registrations) {
-        for (const registration of registrations) {
-          void registration.unregister();
-        }
-      });
-  } else {
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker
-          .register("/sw.js", { scope: "/" })
-          .then((registration) => {
-            console.log(
-              "ServiceWorker registration successful with scope: ",
-              registration.scope,
-            );
-          })
-          .catch((error: unknown) => {
-            console.error("ServiceWorker registration failed: ", error);
-          });
-      });
-    }
+  // Privacy fork: avoid PWA/runtime caching so users don't get stale upstream
+  // bundles that may still contain removed UI such as cookie or merch prompts.
+  if ("serviceWorker" in navigator) {
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        void registration.unregister();
+      }
+    });
+  }
+  if ("caches" in window) {
+    void caches.keys().then((names) => {
+      for (const name of names) {
+        void caches.delete(name);
+      }
+    });
   }
 });
