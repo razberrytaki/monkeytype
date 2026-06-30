@@ -187,7 +187,6 @@ export function SettingsPage(): JSXElement {
           </Section>
           <Section title="danger zone">
             <ImportExport />
-            <AutoSetting key="ads" />
             <AnimationFpsLimit />
             <Setting
               key="resetSettings"

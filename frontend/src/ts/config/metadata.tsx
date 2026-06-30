@@ -1273,13 +1273,13 @@ export const configMetadata: ConfigMetadataObject = {
     group: "hidden",
   },
 
-  // ads
+  // privacy fork: ads are removed
   ads: {
     key: "ads",
     fa: { icon: "fa-ad" },
     changeRequiresRestart: false,
-    description: `You can disable or enable ads at any time. "Result" will show one ad on the result page, "on" will add floating vertical banners, and "sellout" will add multiple ads on every page.`,
-    group: "ads",
+    description: "Advertising is removed in this privacy fork.",
+    group: "hidden",
     overrideValue: ({ value }) => {
       if (isDevEnvironment()) {
         return "off";
@@ -1288,7 +1288,7 @@ export const configMetadata: ConfigMetadataObject = {
     },
     isBlocked: ({ value }) => {
       if (value !== "off" && isDevEnvironment()) {
-        showNoticeNotification("Ads are disabled in development mode.");
+        showNoticeNotification("Advertising is removed in this privacy fork.");
         return true;
       }
       return false;
@@ -1296,7 +1296,7 @@ export const configMetadata: ConfigMetadataObject = {
     afterSet: ({ nosave }) => {
       if (!nosave && !isDevEnvironment()) {
         reloadAfter(3);
-        showNoticeNotification("Ad settings changed. Refreshing...");
+        showNoticeNotification("Advertising settings changed. Refreshing...");
       }
     },
   },
