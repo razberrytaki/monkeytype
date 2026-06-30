@@ -15,7 +15,6 @@ import {
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import { useSavedIndicator } from "../../../hooks/useSavedIndicator";
 import { isAuthenticated } from "../../../states/core";
-import { showModal } from "../../../states/modals";
 import { showSimpleModal } from "../../../states/simple-modal";
 import { cn } from "../../../utils/cn";
 import fileStorage from "../../../utils/file-storage";
@@ -189,24 +188,6 @@ export function SettingsPage(): JSXElement {
           <Section title="danger zone">
             <ImportExport />
             <AutoSetting key="ads" />
-            <Setting
-              key="cookies"
-              title="update cookie preferences"
-              description="If you changed your mind about which cookies you consent to, you can change your preferences here."
-              fa={{
-                icon: "fa-cookie-bite",
-              }}
-              inputs={
-                <Button
-                  class="w-full"
-                  onClick={() => {
-                    showModal("Cookies");
-                  }}
-                >
-                  open
-                </Button>
-              }
-            />
             <AnimationFpsLimit />
             <Setting
               key="resetSettings"
