@@ -17,9 +17,19 @@
 
 /* Hide account/leaderboard pages */
 .pageProfile,
+.pageProfileSearch,
 .pageAccount,
+.pageAccountSettings,
 .pageLeaderboards,
 .pageFriends,
 .pageChallenge {
+  display: none !important;
+}
+
+/* Remove any upstream ad placeholders if reintroduced */
+.ad,
+.advertisement,
+[id^="ad-"],
+[id*="-ad-"] {
   display: none !important;
 }

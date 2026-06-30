@@ -635,7 +635,6 @@ describe("user controller test", () => {
     const blocklistAddMock = vi.spyOn(BlocklistDal, "add");
     const connectionsDeletebyUidMock = vi.spyOn(ConnectionsDal, "deleteByUid");
     const logsDeleteUserMock = vi.spyOn(LogDal, "deleteUserLogs");
-    const georgeUnlinkDiscordMock = vi.spyOn(GeorgeQueue, "unlinkDiscord");
 
     beforeEach(() => {
       [
@@ -649,7 +648,6 @@ describe("user controller test", () => {
         purgeUserFromXpLeaderboardsMock,
         connectionsDeletebyUidMock,
         logsDeleteUserMock,
-        georgeUnlinkDiscordMock,
       ].forEach((it) => it.mockResolvedValue(undefined));
 
       deleteAllResultMock.mockResolvedValue({} as any);
@@ -669,11 +667,10 @@ describe("user controller test", () => {
         purgeUserFromXpLeaderboardsMock,
         connectionsDeletebyUidMock,
         logsDeleteUserMock,
-        georgeUnlinkDiscordMock,
       ].forEach((it) => it.mockClear());
     });
 
-    it("should delete user", async () => {
+    it("should add user to blocklist if banned", async () => {
       //GIVEN
       const user = {
         uid,
@@ -709,9 +706,7 @@ describe("user controller test", () => {
         (await configuration).leaderboards.weeklyXp,
       );
       expect(logsDeleteUserMock).toHaveBeenCalledWith(uid);
-      expect(georgeUnlinkDiscordMock).toHaveBeenCalledWith(user.discordId, uid);
     });
-
     it("should delete user without adding to blocklist if not banned", async () => {
       //GIVEN
       const user = {
@@ -730,6 +725,23 @@ describe("user controller test", () => {
 
       //THEN
       expect(blocklistAddMock).not.toHaveBeenCalled();
+
+      expect(deleteUserMock).toHaveBeenCalledWith(uid);
+      expect(firebaseDeleteUserMock).toHaveBeenCalledWith(uid);
+      expect(deleteAllApeKeysMock).toHaveBeenCalledWith(uid);
+      expect(deleteAllPresetsMock).toHaveBeenCalledWith(uid);
+      expect(deleteConfigMock).toHaveBeenCalledWith(uid);
+      expect(deleteAllResultMock).toHaveBeenCalledWith(uid);
+      expect(connectionsDeletebyUidMock).toHaveBeenCalledWith(uid);
+      expect(purgeUserFromDailyLeaderboardsMock).toHaveBeenCalledWith(
+        uid,
+        (await configuration).dailyLeaderboards,
+      );
+      expect(purgeUserFromXpLeaderboardsMock).toHaveBeenCalledWith(
+        uid,
+        (await configuration).leaderboards.weeklyXp,
+      );
+      expect(logsDeleteUserMock).toHaveBeenCalledWith(uid);
     });
 
     it("should not fail if userInfo cannot be found", async () => {
@@ -872,24 +884,6 @@ describe("user controller test", () => {
         uid,
         (await configuration).leaderboards.weeklyXp,
       );
-    });
-    it("should not unlink user without discordId", async () => {
-      //GIVEN
-      const user = {
-        uid,
-        name: "name",
-        email: "email",
-      } as Partial<UserDal.DBUser> as UserDal.DBUser;
-      getUserMock.mockResolvedValue(user);
-
-      //WHEN
-      await mockApp
-        .delete("/users/")
-        .set("Authorization", `Bearer ${uid}`)
-        .expect(200);
-
-      //THEN
-      expect(georgeUnlinkDiscordMock).not.toHaveBeenCalled();
     });
   });
   describe("resetUser", () => {
